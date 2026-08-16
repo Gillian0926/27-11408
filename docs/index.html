@@ -79,6 +79,33 @@
   .empty { text-align:center; color:var(--muted); padding:40px 0; }
   @media (max-width:720px) { .content-layout { flex-direction:column; }
     .file-list { position:static; max-height:220px; flex:none; width:100%; } }
+  /* 书架 */
+  .shelf-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:18px 16px; padding:8px 4px 6px; }
+  .book { cursor:pointer; transition:transform .16s ease; }
+  .book:hover { transform:translateY(-6px); }
+  .book .cover { height:200px; border-radius:5px 12px 12px 5px; position:relative;
+    box-shadow:0 8px 18px rgba(20,24,40,.22), inset -8px 0 12px rgba(0,0,0,.16);
+    padding:16px 14px 16px 18px; display:flex; flex-direction:column; color:#fff; text-align:left; overflow:hidden; }
+  .book .cover .spine { position:absolute; left:0; top:0; bottom:0; width:7px; background:rgba(0,0,0,.22); }
+  .book .cover .spine::after { content:''; position:absolute; left:7px; top:0; bottom:0; width:1px; background:rgba(255,255,255,.22); }
+  .book .cover .t { font-size:14px; font-weight:800; line-height:1.42; z-index:1; }
+  .book .cover .a { font-size:11px; opacity:.85; margin-top:7px; z-index:1; }
+  .book .cover .badge { position:absolute; bottom:12px; left:18px; font-size:10px; font-weight:700; letter-spacing:.5px;
+    background:rgba(255,255,255,.2); padding:2px 9px; border-radius:999px; z-index:1; }
+  .book .bname { margin-top:9px; font-size:12px; color:var(--muted); text-align:center; }
+  .shelf-wood { height:16px; border-radius:5px; margin:4px 2px 20px;
+    background:linear-gradient(180deg,#c99256 0%,#b0763c 55%,#8f5a2c 100%); box-shadow:0 6px 10px rgba(0,0,0,.25); }
+  /* 阅读器 */
+  .reader-mask { position:fixed; inset:0; background:rgba(13,15,22,.72); z-index:1000; display:none; flex-direction:column; }
+  .reader-mask.open { display:flex; }
+  .reader-bar { display:flex; align-items:center; gap:8px; background:#1f2430; color:#fff; padding:10px 14px; }
+  .reader-bar .rtitle { flex:1; font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .reader-bar .rbtn { display:inline-block; background:rgba(255,255,255,.14); border:none; color:#fff; padding:6px 14px;
+    border-radius:8px; cursor:pointer; font-size:13px; }
+  .reader-bar .rbtn:hover { background:rgba(255,255,255,.26); }
+  .reader-body { flex:1; background:#fff; position:relative; overflow:hidden; }
+  .reader-body iframe { width:100%; height:100%; border:none; display:block; }
+  #epubView { width:100%; height:100%; }
   footer { text-align:center; color:var(--muted); font-size:11px; padding:8px 0 24px; }
 </style>
 </head>
@@ -109,6 +136,7 @@
     <div class="tab" data-view="politics">🗞️ 政治</div>
     <div class="tab" data-view="cs408">📚 408</div>
     <div class="tab" data-view="plan">📋 计划</div>
+    <div class="tab" data-view="books">📕 书架</div>
   </div>
 
   <!-- 主页 -->
@@ -147,6 +175,31 @@
       </div>
     </div>
   </div>
+
+  <!-- 书架 -->
+  <div class="view" id="view-books">
+    <div class="card" style="text-align:center;">
+      <h2 style="margin:0;"><span class="emo">📕</span>我的书架</h2>
+      <div class="note" style="margin-top:6px;">点一本书在线打开 · PDF 直接预览，EPUB 用内置阅读器</div>
+    </div>
+    <div class="shelf-grid" id="booksGrid"></div>
+    <div class="shelf-wood"></div>
+  </div>
+</div>
+
+<!-- 阅读器弹窗 -->
+<div class="reader-mask" id="readerMask">
+  <div class="reader-bar">
+    <span class="rtitle" id="readerTitle">阅读中…</span>
+    <button class="rbtn" id="epubPrev" onclick="epubNav('prev')" style="display:none;">‹ 上一页</button>
+    <button class="rbtn" id="epubNext" onclick="epubNav('next')" style="display:none;">下一页 ›</button>
+    <a class="rbtn" id="readerDl" href="#" download target="_blank" style="text-decoration:none;">⬇ 下载</a>
+    <button class="rbtn" onclick="closeReader()">✕ 关闭</button>
+  </div>
+  <div class="reader-body">
+    <iframe id="pdfFrame" src="about:blank"></iframe>
+    <div id="epubWrap" style="display:none;width:100%;height:100%;"><div id="epubView"></div></div>
+  </div>
 </div>
 
 <footer>27-11408 · 由爪爪 🦉 每日维护 · 内容为学习辅助材料</footer>
@@ -155,6 +208,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
 <script>
 let DATA = [];
 let currentView = 'home';
@@ -223,6 +278,8 @@ document.querySelectorAll('.tab').forEach(t => {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     if (currentView === 'home') {
       document.getElementById('view-home').classList.add('active');
+    } else if (currentView === 'books') {
+      document.getElementById('view-books').classList.add('active');
     } else {
       document.getElementById('view-content').classList.add('active');
       loadSection(currentView);
@@ -307,6 +364,84 @@ function renderDoc(d){
   }
   el.scrollTop = 0;
 }
+
+// ---------- 书架 & 在线阅读 ----------
+const BOOKS = [
+  { id:'os', title:'现代操作系统（原书第3版）', author:'Andrew S. Tanenbaum', subject:'操作系统', file:'books/modern-os-3e.epub', type:'epub', c1:'#5b6cff', c2:'#3730a3' },
+  { id:'zero', title:'零次方·神技大盘点', author:'零次方 · 截至7月31日', subject:'备考技巧', file:'books/zero-power-tips.pdf', type:'pdf', c1:'#e0457b', c2:'#9f1239' },
+  { id:'eng1', title:'图画作文模板及范文', author:'24考研', subject:'英语作文', file:'books/eng-picture-template.pdf', type:'pdf', c1:'#0ea5a0', c2:'#115e59' },
+  { id:'eng2', title:'材料作文模板及范文', author:'24考研', subject:'英语作文', file:'books/eng-material-template.pdf', type:'pdf', c1:'#14b8a6', c2:'#134e4a' },
+  { id:'eng3', title:'主题词（上）+ 真题带写', author:'考研英语一', subject:'英语作文', file:'books/eng-theme-words-1.pdf', type:'pdf', c1:'#f59e0b', c2:'#b45309' },
+  { id:'eng4', title:'主题词（下）+ 真题带写', author:'考研英语一', subject:'英语作文', file:'books/eng-theme-words-2.pdf', type:'pdf', c1:'#f97316', c2:'#9a3412' },
+  { id:'eng5', title:'免费 + 付费模板结合应用', author:'英语一', subject:'英语作文', file:'books/eng-template-combo.pdf', type:'pdf', c1:'#a855f7', c2:'#6b21a8' },
+  { id:'eng6', title:'作文素材', author:'英语一', subject:'英语作文', file:'books/eng-material.pdf', type:'pdf', c1:'#8b5cf6', c2:'#5b21b6' },
+  { id:'eng7', title:'范文汇总（真题 + 样题）', author:'历年真题', subject:'英语作文', file:'books/eng-fanwen.pdf', type:'pdf', c1:'#ec4899', c2:'#9d174d' }
+];
+
+function renderBooks(){
+  const el = document.getElementById('booksGrid');
+  if (!el) return;
+  el.innerHTML = BOOKS.map(b =>
+    '<div class="book" onclick="openBook(\'' + b.id + '\')">' +
+      '<div class="cover" style="background:linear-gradient(160deg,' + b.c1 + ',' + b.c2 + ')">' +
+        '<span class="spine"></span>' +
+        '<span class="t">' + esc(b.title) + '</span>' +
+        '<span class="a">' + esc(b.author) + '</span>' +
+        '<span class="badge">' + (b.type === 'epub' ? 'EPUB' : 'PDF') + '</span>' +
+      '</div>' +
+      '<div class="bname">' + esc(b.subject) + '</div>' +
+    '</div>'
+  ).join('');
+}
+
+let epubBook = null, epubRendition = null;
+
+function openBook(id){
+  const b = BOOKS.find(x => x.id === id);
+  if (!b) return;
+  document.getElementById('readerTitle').textContent = b.title;
+  document.getElementById('readerDl').href = b.file;
+  document.getElementById('readerMask').classList.add('open');
+  const pdf = document.getElementById('pdfFrame');
+  const epubWrap = document.getElementById('epubWrap');
+  const prev = document.getElementById('epubPrev');
+  const next = document.getElementById('epubNext');
+  pdf.style.display = 'none';
+  epubWrap.style.display = 'none';
+  prev.style.display = 'none';
+  next.style.display = 'none';
+  if (b.type === 'pdf') {
+    pdf.src = b.file;
+    pdf.style.display = 'block';
+  } else if (window.ePub) {
+    epubWrap.style.display = 'block';
+    prev.style.display = 'inline-block';
+    next.style.display = 'inline-block';
+    if (epubBook) { try { epubBook.destroy(); } catch(e){} }
+    epubBook = ePub(b.file);
+    epubRendition = epubBook.renderTo('epubView', { width:'100%', height:'100%', spread:'none' });
+    epubRendition.display();
+  } else {
+    // 阅读器未加载：退化为下载
+    window.open(b.file, '_blank');
+    closeReader();
+  }
+}
+
+function epubNav(dir){
+  if (epubRendition) epubRendition[dir]();
+}
+
+function closeReader(){
+  document.getElementById('readerMask').classList.remove('open');
+  document.getElementById('pdfFrame').src = 'about:blank';
+  if (epubBook) { try { epubBook.destroy(); } catch(e){} }
+  epubBook = null; epubRendition = null;
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeReader(); });
+
+renderBooks();
 </script>
 </body>
 </html>
