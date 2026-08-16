@@ -16,9 +16,14 @@ SECTIONS = [
     ('英语一/作文技巧', 'essay', '✍️ 英语 · 作文技巧'),
     ('英语一/素材库', 'essay_bank', '📖 英语 · 素材库'),
     ('政治/时事', 'politics', '🗞️ 政治 · 时事'),
-    ('数学一/卡片', 'math', '🧮 数学 · 知识点卡片'),
-    ('数学一/技巧', 'math_tips', '🧮 数学 · 做题技巧'),
-    ('408', 'cs408', '📚 408'),
+    ('数学一/微积分', 'math_calc', '🧮 数学 · 微积分'),
+    ('数学一/线性代数', 'math_la', '🧮 数学 · 线性代数'),
+    ('数学一/概率论', 'math_prob', '🧮 数学 · 概率论'),
+    ('408', 'cs408', '📚 408 · 总览'),
+    ('408/操作系统', 'os', '📚 408 · 操作系统'),
+    ('408/计算机网络', 'network', '📚 408 · 计算机网络'),
+    ('408/数据结构', 'ds', '📚 408 · 数据结构'),
+    ('408/计算机组成', 'co', '📚 408 · 计算机组成'),
     ('每日计划', 'plan', '📋 每日计划'),
 ]
 
@@ -26,7 +31,7 @@ SECTIONS = [
 def main():
     out = []
     for sub, key, label in SECTIONS:
-        pattern = os.path.join(BASE, sub, '**', '*.md')
+        pattern = os.path.join(BASE, sub, '*.md')  # 只扫本目录，子目录各自成板块
         for f in sorted(glob.glob(pattern, recursive=True)):
             rel = os.path.relpath(f, BASE).replace('\\', '/')
             name = os.path.basename(f)

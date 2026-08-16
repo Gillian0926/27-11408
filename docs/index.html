@@ -192,14 +192,14 @@ function renderHome(){
   const now = new Date();
   const cn = new Date(now.getTime() + 8*3600*1000).toISOString().slice(0,10);
   document.getElementById('todayLabel').textContent = '· ' + cn;
-  const daily = DATA.filter(d => d.key === 'english' || d.key === 'politics' || d.key === 'math');
+  const daily = DATA.filter(d => ['english','politics','math_calc','math_la','math_prob'].includes(d.key));
   const latest = {};
   daily.forEach(d => { if (!latest[d.key] || (d.date||'') > (latest[d.key].date||'')) latest[d.key] = d; });
   const plan = DATA.find(d => d.key === 'plan' && d.date === cn);
   const planItems = DATA.filter(d => d.key === 'plan');
   const todayPlan = plan || planItems[0];
   let html = '';
-  const order = [['english','🇬🇧 英语'],['politics','🗞️ 政治'],['math','🧮 数学'],['essay','✍️ 作文']];
+  const order = [['english','🇬🇧 英语'],['politics','🗞️ 政治'],['math_calc','🧮 数学'],['essay','✍️ 作文']];
   order.forEach(([k, emo]) => {
     const d = latest[k];
     if (!d) return;
@@ -231,10 +231,10 @@ document.querySelectorAll('.tab').forEach(t => {
 });
 
 const KEY_ORDER = {
-  english: ['english','essay'],
-  math: ['math','math_tips'],
+  english: ['english','essay','essay_bank'],
+  math: ['math_calc','math_la','math_prob'],
   politics: ['politics'],
-  cs408: ['cs408'],
+  cs408: ['cs408','os','network','ds','co'],
   plan: ['plan'],
 };
 
