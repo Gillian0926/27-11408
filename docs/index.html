@@ -22,10 +22,25 @@
   .stat { background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:10px 18px; box-shadow:0 2px 10px rgba(30,40,90,.06); font-size:13px; color:var(--muted); }
   .stat b { display:block; font-size:20px; color:var(--ink); }
+  /* 倒计时 */
+  .countdown-row { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+  .countdown-box { flex:1 1 240px; background:linear-gradient(135deg,#1f2430 0%,#3a4152 100%);
+    color:#fff; border-radius:16px; padding:18px 20px; text-align:center; }
+  .countdown-box .label { font-size:13px; opacity:.85; margin-bottom:6px; }
+  .countdown-box .num { font-size:30px; font-weight:800; font-variant-numeric:tabular-nums;
+    letter-spacing:1px; }
+  .countdown-box .sub { font-size:11px; opacity:.6; margin-top:4px; }
+  .countdown-box.warn { background:linear-gradient(135deg,#e0457b 0%,#ff7a59 100%); }
   .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
     padding:16px 20px; margin-bottom:14px; }
   .card h2 { margin:0 0 10px; font-size:17px; }
   .card h2 .emo { margin-right:6px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { border-bottom:1px solid var(--line); padding:9px 8px; text-align:left; }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  td .subj { font-weight:600; }
+  td .code { color:var(--muted); font-size:12px; }
+  .note { color:var(--muted); font-size:12px; margin-top:10px; }
   .item { padding:9px 0; border-top:1px dashed var(--line); }
   .item:first-of-type { border-top:none; }
   .item a { color:var(--ink); text-decoration:none; font-weight:600; }
@@ -56,6 +71,53 @@
     <div class="stat"><b id="days">—</b>已更新天数</div>
     <div class="stat"><b id="items">—</b>今日条目</div>
     <div class="stat"><b>2027</b>考研目标</div>
+  </div>
+
+  <!-- ⏳ 倒计时 -->
+  <div class="countdown-row">
+    <div class="countdown-box" id="box-baoming">
+      <div class="label">📝 考研报名倒计时（预报名）</div>
+      <div class="num" id="cd-baoming">计算中…</div>
+      <div class="sub">预计 2026-09-24 开始 · 以官方公布为准</div>
+    </div>
+    <div class="countdown-box warn" id="box-kaoyan">
+      <div class="label">🏁 考研初试倒计时</div>
+      <div class="num" id="cd-kaoyan">计算中…</div>
+      <div class="sub">预计 2026-12-19 08:30 开考 · 以官方公布为准</div>
+    </div>
+  </div>
+
+  <!-- 📅 考试时间表 -->
+  <div class="card">
+    <h2><span class="emo">📅</span>2027 考研考试时间表（预计）</h2>
+    <table>
+      <tr><th>日期</th><th>时间</th><th>科目</th><th>备注</th></tr>
+      <tr>
+        <td><b>12 月 19 日</b><br><span style="font-size:12px;color:var(--muted)">周六</span></td>
+        <td>08:30 – 11:30</td>
+        <td><span class="subj">思想政治理论</span> <span class="code">(101)</span></td>
+        <td>第一科</td>
+      </tr>
+      <tr>
+        <td><b>12 月 19 日</b><br><span style="font-size:12px;color:var(--muted)">周六</span></td>
+        <td>14:00 – 17:00</td>
+        <td><span class="subj">英语（一）</span> <span class="code">(201)</span></td>
+        <td>第二科</td>
+      </tr>
+      <tr>
+        <td><b>12 月 20 日</b><br><span style="font-size:12px;color:var(--muted)">周日</span></td>
+        <td>08:30 – 11:30</td>
+        <td><span class="subj">数学（一）</span> <span class="code">(301)</span></td>
+        <td>第三科</td>
+      </tr>
+      <tr>
+        <td><b>12 月 20 日</b><br><span style="font-size:12px;color:var(--muted)">周日</span></td>
+        <td>14:00 – 17:00</td>
+        <td><span class="subj">408 计算机学科专业基础</span> <span class="code">(408)</span></td>
+        <td>第四科</td>
+      </tr>
+    </table>
+    <div class="note">⚠️ 初试日期为按往年规律预计（12 月倒数第二个周末），以研招网官方公布为准。报名：预报名约 9 月下旬，正式报名约 10 月，届时爪爪会提醒你。</div>
   </div>
 
   <div class="nav">
@@ -91,6 +153,29 @@
 <script>
   document.getElementById('days').textContent = '1';
   document.getElementById('items').textContent = '4';
+
+  // ⏳ 倒计时（目标时间以官方公布为准，先按惯例预估）
+  const TARGET_BAOMING = new Date('2026-09-24T09:00:00+08:00'); // 预报名开始（预计）
+  const TARGET_KAOYAN  = new Date('2026-12-19T08:30:00+08:00'); // 初试第一科开考（预计）
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function renderCountdown() {
+    const now = new Date();
+    function fmt(target) {
+      const diff = target - now;
+      if (diff <= 0) return '已开始！';
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor(diff % 86400000 / 3600000);
+      const m = Math.floor(diff % 3600000 / 60000);
+      const s = Math.floor(diff % 60000 / 1000);
+      return d + ' 天 ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+    }
+    document.getElementById('cd-baoming').textContent = fmt(TARGET_BAOMING);
+    document.getElementById('cd-kaoyan').textContent = fmt(TARGET_KAOYAN);
+  }
+  renderCountdown();
+  setInterval(renderCountdown, 1000);
 </script>
 </body>
 </html>
