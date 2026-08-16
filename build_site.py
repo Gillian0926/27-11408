@@ -14,6 +14,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 SECTIONS = [
     ('英语一/每日一句', 'english', '🇬🇧 英语 · 每日精读'),
     ('英语一/作文技巧', 'essay', '✍️ 英语 · 作文技巧'),
+    ('英语一/素材库', 'essay_bank', '📖 英语 · 素材库'),
     ('政治/时事', 'politics', '🗞️ 政治 · 时事'),
     ('数学一/卡片', 'math', '🧮 数学 · 知识点卡片'),
     ('数学一/技巧', 'math_tips', '🧮 数学 · 做题技巧'),
