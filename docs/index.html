@@ -14,33 +14,35 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
     line-height:1.7; }
   header { background:linear-gradient(135deg,#e0457b 0%,#8b5cf6 100%); color:#fff;
-    padding:40px 24px 28px; text-align:center; }
-  header h1 { margin:0 0 6px; font-size:28px; letter-spacing:.5px; }
-  header p { margin:0; opacity:.92; font-size:14px; }
-  .wrap { max-width:860px; margin:0 auto; padding:20px 16px 60px; }
-  .stats { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin:-18px auto 22px; position:relative; z-index:2; }
-  .stat { background:var(--card); border:1px solid var(--line); border-radius:12px;
-    padding:10px 18px; box-shadow:0 2px 10px rgba(30,40,90,.06); font-size:13px; color:var(--muted); }
-  .stat b { display:block; font-size:20px; color:var(--ink); }
-  /* 倒计时 */
-  .countdown-row { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+    padding:34px 24px 26px; text-align:center; }
+  header h1 { margin:0 0 6px; font-size:26px; letter-spacing:.5px; }
+  header p { margin:0; opacity:.92; font-size:13px; }
+  .wrap { max-width:960px; margin:0 auto; padding:18px 16px 60px; }
+  .countdown-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
   .countdown-box { flex:1 1 240px; background:linear-gradient(135deg,#1f2430 0%,#3a4152 100%);
-    color:#fff; border-radius:16px; padding:18px 20px; text-align:center; }
-  .countdown-box .label { font-size:13px; opacity:.85; margin-bottom:6px; }
-  .countdown-box .num { font-size:30px; font-weight:800; font-variant-numeric:tabular-nums;
-    letter-spacing:1px; }
-  .countdown-box .sub { font-size:11px; opacity:.6; margin-top:4px; }
+    color:#fff; border-radius:14px; padding:14px 18px; text-align:center; }
+  .countdown-box .label { font-size:12px; opacity:.85; margin-bottom:4px; }
+  .countdown-box .num { font-size:24px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .countdown-box .sub { font-size:10px; opacity:.6; margin-top:2px; }
   .countdown-box.warn { background:linear-gradient(135deg,#e0457b 0%,#ff7a59 100%); }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 14px; }
+  .tab { border:1px solid var(--line); background:var(--card); color:var(--muted);
+    padding:7px 16px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600;
+    user-select:none; transition:.15s; }
+  .tab:hover { color:var(--accent); border-color:var(--accent); }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .view { display:none; }
+  .view.active { display:block; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
     padding:16px 20px; margin-bottom:14px; }
   .card h2 { margin:0 0 10px; font-size:17px; }
   .card h2 .emo { margin-right:6px; }
-  table { width:100%; border-collapse:collapse; font-size:14px; }
-  th, td { border-bottom:1px solid var(--line); padding:9px 8px; text-align:left; }
-  th { color:var(--muted); font-weight:600; font-size:12px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { border-bottom:1px solid var(--line); padding:8px; text-align:left; }
+  th { color:var(--muted); font-weight:600; font-size:11px; }
   td .subj { font-weight:600; }
-  td .code { color:var(--muted); font-size:12px; }
-  .note { color:var(--muted); font-size:12px; margin-top:10px; }
+  td .code { color:var(--muted); font-size:11px; }
+  .note { color:var(--muted); font-size:11px; margin-top:8px; }
   .item { padding:9px 0; border-top:1px dashed var(--line); }
   .item:first-of-type { border-top:none; }
   .item a { color:var(--ink); text-decoration:none; font-weight:600; }
@@ -51,13 +53,33 @@
   .tag.pol { background:var(--pol-soft); color:var(--pol); }
   .tag.math { background:var(--math-soft); color:var(--math); }
   .tag.cs { background:var(--cs-soft); color:var(--cs); }
-  .tag.new { background:var(--accent-soft); color:var(--accent); }
-  .item .desc { color:var(--muted); font-size:13px; margin-top:2px; }
-  .nav { display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 20px; }
-  .nav a { border:1px solid var(--line); background:var(--card); color:var(--muted);
-    padding:6px 14px; border-radius:999px; text-decoration:none; font-size:13px; }
-  .nav a:hover { border-color:var(--accent); color:var(--accent); }
-  footer { text-align:center; color:var(--muted); font-size:12px; padding:10px 0 30px; }
+  .item .desc { color:var(--muted); font-size:12px; margin-top:2px; }
+  /* 内容浏览 */
+  .content-layout { display:flex; gap:14px; align-items:flex-start; }
+  .file-list { flex:0 0 250px; background:var(--card); border:1px solid var(--line);
+    border-radius:14px; padding:12px; position:sticky; top:12px; max-height:70vh; overflow:auto; }
+  .file-list .fi { padding:8px 10px; border-radius:8px; cursor:pointer; font-size:13px;
+    border-bottom:1px solid var(--line); }
+  .file-list .fi:hover { background:var(--accent-soft); }
+  .file-list .fi.active { background:var(--accent-soft); color:var(--accent); font-weight:600; }
+  .file-list .fi .d { font-size:11px; color:var(--muted); }
+  .doc { flex:1 1 auto; background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:20px 24px; min-height:300px; overflow:auto; }
+  .doc h1 { font-size:20px; border-bottom:2px solid var(--line); padding-bottom:8px; }
+  .doc h2 { font-size:17px; margin-top:20px; }
+  .doc h3 { font-size:15px; }
+  .doc blockquote { border-left:4px solid var(--accent); margin:10px 0; padding:6px 14px;
+    background:var(--accent-soft); border-radius:0 8px 8px 0; }
+  .doc code { background:#f0f1f6; padding:1px 6px; border-radius:4px; font-size:13px; }
+  .doc pre { background:#1f2430; color:#e8eaf3; padding:14px; border-radius:10px; overflow:auto; }
+  .doc pre code { background:none; color:inherit; }
+  .doc table { border-collapse:collapse; margin:10px 0; }
+  .doc th, .doc td { border:1px solid var(--line); padding:6px 10px; }
+  .doc summary { cursor:pointer; color:var(--accent); }
+  .empty { text-align:center; color:var(--muted); padding:40px 0; }
+  @media (max-width:720px) { .content-layout { flex-direction:column; }
+    .file-list { position:static; max-height:220px; flex:none; width:100%; } }
+  footer { text-align:center; color:var(--muted); font-size:11px; padding:8px 0 24px; }
 </style>
 </head>
 <body>
@@ -67,115 +89,196 @@
 </header>
 
 <div class="wrap">
-  <div class="stats">
-    <div class="stat"><b id="days">—</b>已更新天数</div>
-    <div class="stat"><b id="items">—</b>今日条目</div>
-    <div class="stat"><b>2027</b>考研目标</div>
-  </div>
-
-  <!-- ⏳ 倒计时 -->
   <div class="countdown-row">
-    <div class="countdown-box" id="box-baoming">
+    <div class="countdown-box">
       <div class="label">📝 考研报名倒计时（预报名）</div>
-      <div class="num" id="cd-baoming">计算中…</div>
-      <div class="sub">预计 2026-09-24 开始 · 以官方公布为准</div>
+      <div class="num" id="cd-baoming">—</div>
+      <div class="sub">预计 2026-09-24 开始</div>
     </div>
-    <div class="countdown-box warn" id="box-kaoyan">
+    <div class="countdown-box warn">
       <div class="label">🏁 考研初试倒计时</div>
-      <div class="num" id="cd-kaoyan">计算中…</div>
-      <div class="sub">预计 2026-12-19 08:30 开考 · 以官方公布为准</div>
+      <div class="num" id="cd-kaoyan">—</div>
+      <div class="sub">预计 2026-12-19 08:30 开考</div>
     </div>
   </div>
 
-  <!-- 📅 考试时间表 -->
-  <div class="card">
-    <h2><span class="emo">📅</span>2027 考研考试时间表（预计）</h2>
-    <table>
-      <tr><th>日期</th><th>时间</th><th>科目</th><th>备注</th></tr>
-      <tr>
-        <td><b>12 月 19 日</b><br><span style="font-size:12px;color:var(--muted)">周六</span></td>
-        <td>08:30 – 11:30</td>
-        <td><span class="subj">思想政治理论</span> <span class="code">(101)</span></td>
-        <td>第一科</td>
-      </tr>
-      <tr>
-        <td><b>12 月 19 日</b><br><span style="font-size:12px;color:var(--muted)">周六</span></td>
-        <td>14:00 – 17:00</td>
-        <td><span class="subj">英语（一）</span> <span class="code">(201)</span></td>
-        <td>第二科</td>
-      </tr>
-      <tr>
-        <td><b>12 月 20 日</b><br><span style="font-size:12px;color:var(--muted)">周日</span></td>
-        <td>08:30 – 11:30</td>
-        <td><span class="subj">数学（一）</span> <span class="code">(301)</span></td>
-        <td>第三科</td>
-      </tr>
-      <tr>
-        <td><b>12 月 20 日</b><br><span style="font-size:12px;color:var(--muted)">周日</span></td>
-        <td>14:00 – 17:00</td>
-        <td><span class="subj">408 计算机学科专业基础</span> <span class="code">(408)</span></td>
-        <td>第四科</td>
-      </tr>
-    </table>
-    <div class="note">⚠️ 初试日期为按往年规律预计（12 月倒数第二个周末），以研招网官方公布为准。报名：预报名约 9 月下旬，正式报名约 10 月，届时爪爪会提醒你。</div>
+  <div class="tabs">
+    <div class="tab active" data-view="home">🏠 主页</div>
+    <div class="tab" data-view="english">🇬🇧 英语</div>
+    <div class="tab" data-view="math">🧮 数学</div>
+    <div class="tab" data-view="politics">🗞️ 政治</div>
+    <div class="tab" data-view="cs408">📚 408</div>
+    <div class="tab" data-view="plan">📋 计划</div>
   </div>
 
-  <div class="nav">
-    <a href="../英语一/">🇬🇧 英语一</a>
-    <a href="../数学一/">🧮 数学一</a>
-    <a href="../政治/">🗞️ 政治</a>
-    <a href="../408/">📚 408</a>
-    <a href="../每日计划/">📋 每日计划</a>
+  <!-- 主页 -->
+  <div class="view active" id="view-home">
+    <div class="card">
+      <h2><span class="emo">📅</span>2027 考研考试时间表（预计）</h2>
+      <table>
+        <tr><th>日期</th><th>时间</th><th>科目</th><th>备注</th></tr>
+        <tr><td>12 月 19 日（周六）</td><td>08:30 – 11:30</td>
+          <td><span class="subj">思想政治理论</span> <span class="code">(101)</span></td><td>第一科</td></tr>
+        <tr><td>12 月 19 日（周六）</td><td>14:00 – 17:00</td>
+          <td><span class="subj">英语（一）</span> <span class="code">(201)</span></td><td>第二科</td></tr>
+        <tr><td>12 月 20 日（周日）</td><td>08:30 – 11:30</td>
+          <td><span class="subj">数学（一）</span> <span class="code">(301)</span></td><td>第三科</td></tr>
+        <tr><td>12 月 20 日（周日）</td><td>14:00 – 17:00</td>
+          <td><span class="subj">408 计算机学科专业基础</span> <span class="code">(408)</span></td><td>第四科</td></tr>
+      </table>
+      <div class="note">⚠️ 以研招网官方公布为准。报名：预报名约 9 月下旬，正式报名约 10 月。</div>
+    </div>
+    <div class="card">
+      <h2><span class="emo">📌</span>今日更新 <span id="todayLabel"></span></h2>
+      <div id="todayItems"></div>
+    </div>
+    <div class="card">
+      <h2><span class="emo">📖</span>今日学习清单（15 分钟）</h2>
+      <div id="todayPlan"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2><span class="emo">📌</span>今日更新 · 2026-08-16（第 1 天）</h2>
-    <div class="item"><span class="tag eng">英语</span><a href="../英语一/每日一句/2026-08-16.md">每日一句：AI 智能体与法律责任</a>
-      <div class="desc">卫报科技版 · agent 一词多义 · 插入语长难句拆解</div></div>
-    <div class="item"><span class="tag pol">政治</span><a href="../政治/时事/2026-08-16.md">时事速览 5 条</a>
-      <div class="desc">十五五开局 · 新质生产力 · 总体国家安全观 · 双碳节点</div></div>
-    <div class="item"><span class="tag math">数学</span><a href="../数学一/卡片/2026-08-16.md">知识点卡片 #001：等价无穷小</a>
-      <div class="desc">10 组必背替换 + 乘除可换加减慎换 + 真题例题</div></div>
-    <div class="item"><span class="tag cs">408</span><a href="../408/README.md">408 考点地图（全景框架）</a>
-      <div class="desc">四门课分值分布 · 近十年高频考点 · 每周专题计划</div></div>
-  </div>
-
-  <div class="card">
-    <h2><span class="emo">📖</span>今日学习清单（15 分钟）</h2>
-    <div class="item"><span class="tag eng">英语</span>先翻译再看拆解，背 4 个高频词，仿写 1 句</div>
-    <div class="item"><span class="tag math">数学</span>默写等价无穷小表 + 做混合题（答案 -1/2）</div>
-    <div class="item"><span class="tag pol">政治</span>背总体国家安全观 + 双碳时间节点</div>
-    <div class="item"><span class="tag cs">408</span>瞄一眼考点地图，明确本周重点</div>
+  <!-- 内容板块 -->
+  <div class="view" id="view-content">
+    <div class="content-layout">
+      <div class="file-list" id="fileList"></div>
+      <div class="doc" id="docView">
+        <div class="empty">选择左侧内容查看 🦉</div>
+      </div>
+    </div>
   </div>
 </div>
 
 <footer>27-11408 · 由爪爪 🦉 每日维护 · 内容为学习辅助材料</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script>
-  document.getElementById('days').textContent = '1';
-  document.getElementById('items').textContent = '4';
+let DATA = [];
+let currentView = 'home';
+let currentKey = null;
+let currentIdx = null;
 
-  // ⏳ 倒计时（目标时间以官方公布为准，先按惯例预估）
-  const TARGET_BAOMING = new Date('2026-09-24T09:00:00+08:00'); // 预报名开始（预计）
-  const TARGET_KAOYAN  = new Date('2026-12-19T08:30:00+08:00'); // 初试第一科开考（预计）
+// ---------- 倒计时 ----------
+const T_BAOMING = new Date('2026-09-24T09:00:00+08:00');
+const T_KAOYAN  = new Date('2026-12-19T08:30:00+08:00');
+function pad(n){ return String(n).padStart(2,'0'); }
+function fmt(target){
+  const diff = target - new Date();
+  if (diff <= 0) return '已开始！';
+  return Math.floor(diff/86400000) + ' 天 ' + pad(Math.floor(diff%86400000/3600000)) + ':' +
+         pad(Math.floor(diff%3600000/60000)) + ':' + pad(Math.floor(diff%60000/1000));
+}
+function tick(){ document.getElementById('cd-baoming').textContent = fmt(T_BAOMING);
+  document.getElementById('cd-kaoyan').textContent = fmt(T_KAOYAN); }
+tick(); setInterval(tick, 1000);
 
-  function pad(n) { return String(n).padStart(2, '0'); }
+// ---------- 数据加载 ----------
+fetch('data.json').then(r => r.json()).then(d => {
+  DATA = d;
+  renderHome();
+}).catch(() => {
+  document.getElementById('todayItems').innerHTML = '<div class="empty">数据加载失败</div>';
+});
 
-  function renderCountdown() {
-    const now = new Date();
-    function fmt(target) {
-      const diff = target - now;
-      if (diff <= 0) return '已开始！';
-      const d = Math.floor(diff / 86400000);
-      const h = Math.floor(diff % 86400000 / 3600000);
-      const m = Math.floor(diff % 3600000 / 60000);
-      const s = Math.floor(diff % 60000 / 1000);
-      return d + ' 天 ' + pad(h) + ':' + pad(m) + ':' + pad(s);
-    }
-    document.getElementById('cd-baoming').textContent = fmt(TARGET_BAOMING);
-    document.getElementById('cd-kaoyan').textContent = fmt(TARGET_KAOYAN);
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderHome(){
+  const today = new Date().toISOString().slice(0,10);
+  // 中文日期（Asia/Shanghai）
+  const now = new Date();
+  const cn = new Date(now.getTime() + 8*3600*1000).toISOString().slice(0,10);
+  document.getElementById('todayLabel').textContent = '· ' + cn;
+  const daily = DATA.filter(d => d.key === 'english' || d.key === 'politics' || d.key === 'math');
+  const latest = {};
+  daily.forEach(d => { if (!latest[d.key] || (d.date||'') > (latest[d.key].date||'')) latest[d.key] = d; });
+  const plan = DATA.find(d => d.key === 'plan' && d.date === cn);
+  const planItems = DATA.filter(d => d.key === 'plan');
+  const todayPlan = plan || planItems[0];
+  let html = '';
+  const order = [['english','🇬🇧 英语'],['politics','🗞️ 政治'],['math','🧮 数学'],['essay','✍️ 作文']];
+  order.forEach(([k, emo]) => {
+    const d = latest[k];
+    if (!d) return;
+    html += '<div class="item"><span class="tag ' + (k==='english'?'eng':k==='politics'?'pol':'math') + '">' + emo + '</span>' +
+      '<a href="#" onclick="openFile(\'' + k + '\',\'' + esc(d.path) + '\');return false;">' + esc(d.title) + '</a>' +
+      '<div class="desc">' + esc(d.date || '') + '</div></div>';
+  });
+  document.getElementById('todayItems').innerHTML = html || '<div class="empty">今天还没有更新</div>';
+  if (todayPlan) {
+    document.getElementById('todayPlan').innerHTML =
+      '<div class="item">📌 <b>' + esc(todayPlan.title) + '</b></div>' +
+      '<div class="item"><span style="font-size:12px;color:var(--muted)">' + esc(todayPlan.date) + ' · 详见内容板块</span></div>';
   }
-  renderCountdown();
-  setInterval(renderCountdown, 1000);
+}
+
+// ---------- 板块切换 ----------
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    currentView = t.dataset.view;
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    if (currentView === 'home') {
+      document.getElementById('view-home').classList.add('active');
+    } else {
+      document.getElementById('view-content').classList.add('active');
+      loadSection(currentView);
+    }
+  });
+});
+
+const KEY_ORDER = {
+  english: ['english','essay'],
+  math: ['math','math_tips'],
+  politics: ['politics'],
+  cs408: ['cs408'],
+  plan: ['plan'],
+};
+
+function loadSection(view){
+  const keys = KEY_ORDER[view] || [view];
+  currentKey = keys[0];
+  const files = DATA.filter(d => keys.includes(d.key));
+  const listEl = document.getElementById('fileList');
+  if (!files.length) {
+    listEl.innerHTML = '<div class="empty">暂无内容</div>';
+    document.getElementById('docView').innerHTML = '<div class="empty">暂无内容 🦉</div>';
+    return;
+  }
+  // 分组渲染：每个 key 一个小标题 + 文件
+  let html = '';
+  keys.forEach(k => {
+    const sub = files.filter(d => d.key === k).sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    if (!sub.length) return;
+    const label = sub[0].label;
+    html += '<div style="font-size:12px;color:var(--muted);padding:8px 4px 4px;font-weight:600;">' + esc(label) + '</div>';
+    sub.forEach(d => {
+      html += '<div class="fi" data-path="' + esc(d.path) + '" onclick="openFileByPath(\'' + esc(d.path) + '\')">' +
+        esc(d.title) + '<div class="d">' + esc(d.date || '') + '</div></div>';
+    });
+  });
+  listEl.innerHTML = html;
+  openFileByPath(files[0].path);
+}
+
+function openFileByPath(path){
+  const d = DATA.find(x => x.path === path);
+  if (!d) return;
+  document.querySelectorAll('.fi').forEach(x => x.classList.toggle('active', x.dataset.path === path));
+  renderDoc(d);
+}
+
+function openFile(key, path){ openFileByPath(path); }
+
+function renderDoc(d){
+  const el = document.getElementById('docView');
+  if (window.marked) {
+    el.innerHTML = marked.parse(d.content);
+  } else {
+    el.innerHTML = '<div class="empty">渲染库加载失败，<a href="' + esc(d.url) + '" target="_blank">点此查看原文</a></div>';
+  }
+  el.scrollTop = 0;
+}
 </script>
 </body>
 </html>
