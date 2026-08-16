@@ -272,10 +272,13 @@ function openFile(key, path){ openFileByPath(path); }
 
 function renderDoc(d){
   const el = document.getElementById('docView');
+  const gh = 'https://github.com/Gillian0926/27-11408/blob/main/' + d.path;
+  const bar = '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">' +
+    '<a href="' + esc(gh) + '" target="_blank" style="color:var(--accent);">📂 在 GitHub 查看原文</a></div>';
   if (window.marked) {
-    el.innerHTML = marked.parse(d.content);
+    el.innerHTML = bar + marked.parse(d.content);
   } else {
-    el.innerHTML = '<div class="empty">渲染库加载失败，<a href="' + esc(d.url) + '" target="_blank">点此查看原文</a></div>';
+    el.innerHTML = bar + '<div class="empty">渲染库加载失败，<a href="' + esc(d.url) + '" target="_blank">点此查看原文</a></div>';
   }
   el.scrollTop = 0;
 }
