@@ -248,16 +248,24 @@ function loadSection(view){
     document.getElementById('docView').innerHTML = '<div class="empty">暂无内容 🦉</div>';
     return;
   }
-  // 分组渲染：每个 key 一个小标题 + 文件
+  // 分组渲染：科目标题 → 分组小标题（知识点/课件要点/课程资料…）→ 文件
   let html = '';
   keys.forEach(k => {
     const sub = files.filter(d => d.key === k).sort((a,b) => (b.date||'').localeCompare(a.date||''));
     if (!sub.length) return;
-    const label = sub[0].label;
-    html += '<div style="font-size:12px;color:var(--muted);padding:8px 4px 4px;font-weight:600;">' + esc(label) + '</div>';
-    sub.forEach(d => {
-      html += '<div class="fi" data-path="' + esc(d.path) + '" onclick="openFileByPath(\'' + esc(d.path) + '\')">' +
-        esc(d.title) + '<div class="d">' + esc(d.date || '') + '</div></div>';
+    html += '<div style="font-size:12px;color:var(--muted);padding:8px 4px 4px;font-weight:700;">' + esc(sub[0].label) + '</div>';
+    const gmap = {};
+    sub.forEach(d => { const g = d.group || ''; (gmap[g] = gmap[g] || []).push(d); });
+    const gOrder = Object.keys(gmap).sort((a,b) => {
+      if (!a) return -1; if (!b) return 1;
+      return a.localeCompare(b, 'zh');
+    });
+    gOrder.forEach(g => {
+      if (g) html += '<div style="font-size:11px;color:var(--accent);padding:6px 4px 2px;">' + esc(g) + '</div>';
+      gmap[g].forEach(d => {
+        html += '<div class="fi" data-path="' + esc(d.path) + '" onclick="openFileByPath(\'' + esc(d.path) + '\')">' +
+          esc(d.title) + '<div class="d">' + esc(d.date || '') + '</div></div>';
+      });
     });
   });
   listEl.innerHTML = html;
