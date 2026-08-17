@@ -356,10 +356,17 @@ function renderHome(){
   const plan = DATA.find(d => d.key === 'plan' && d.date === cn);
   const planItems = DATA.filter(d => d.key === 'plan');
   const todayPlan = plan || planItems[0];
-  let html = '';
-  const order = [['english','🇬🇧 英语'],['politics','🗞️ 政治'],['math_calc','🧮 数学'],['essay','✍️ 作文']];
-  order.forEach(([k, emo]) => {
+  // 数学卡片：微积分/线性代数/概率论取最新（每日轮换科目）
+  let mathLatest = null;
+  ['math_calc','math_la','math_prob'].forEach(k => {
     const d = latest[k];
+    if (d && (!mathLatest || (d.date||'') > (mathLatest.date||''))) mathLatest = d;
+  });
+  let html = '';
+  const order = [['english','🇬🇧 英语'],['politics','🗞️ 政治'],['essay','✍️ 作文']];
+  if (mathLatest) order.splice(2, 0, ['math_calc','🧮 数学']);
+  order.forEach(([k, emo]) => {
+    const d = (k === 'math_calc' && mathLatest) ? mathLatest : latest[k];
     if (!d) return;
     html += '<div class="item"><span class="tag ' + (k==='english'?'eng':k==='politics'?'pol':'math') + '">' + emo + '</span>' +
       '<a href="#" onclick="openFile(\'' + k + '\',\'' + esc(d.path) + '\');return false;">' + esc(d.title) + '</a>' +
