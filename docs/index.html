@@ -125,7 +125,7 @@
   .btn-primary:hover { filter:brightness(1.06); }
   .diary-form .df-row { margin-bottom:12px; }
   .diary-form label { display:block; font-size:12px; color:var(--muted); font-weight:600; margin-bottom:4px; }
-  .diary-form input[type=text], .diary-form input[type=date], .diary-form textarea {
+  .diary-form input[type=text], .diary-form input[type=date], .diary-form input[type=email], .diary-form input[type=password], .diary-form textarea {
     width:100%; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:14px;
     font-family:inherit; background:#fff; color:var(--ink); }
   .diary-form textarea { resize:vertical; }
@@ -249,6 +249,10 @@
   <!-- 日记 -->
   <div class="view" id="view-diary">
     <div class="card">
+      <h2><span class="emo">🔐</span>登录</h2>
+      <div id="authArea"></div>
+    </div>
+    <div class="card">
       <h2><span class="emo">📔</span>写学习日记</h2>
       <div class="note">记录每天学了什么、状态如何；日记也会按遗忘曲线自动进入复习。</div>
       <div class="diary-form">
@@ -306,6 +310,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 let DATA = [];
 let currentView = 'home';
@@ -561,7 +566,7 @@ const DONE_KEY = 'kaoyan_review_done_v1';
 
 function todayCN(){ return new Date(Date.now() + 8*3600*1000).toISOString().slice(0,10); }
 function daysBetween(a, b){ const x = new Date(a + 'T00:00:00'), y = new Date(b + 'T00:00:00'); return Math.round((y - x) / 86400000); }
-function addDays(s, n){ const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
+function addDays(s, n){ const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 
 function classifyDiff(diff){
   if (diff === 0) return { status:'new', label:'今日新学' };
@@ -659,13 +664,97 @@ function renderLegend(){
     '<br>记忆保持率 <b>R = e^(-t/S)</b>：初期遗忘快、后期放缓，按节奏复习就是把短期记忆变长期记忆。';
 }
 
-// ---------- 日记 ----------
-const DIARY_KEY = 'kaoyan_diary_v1';
+// ---------- Supabase 认证 + 日记 ----------
+const SB_URL = 'https://jkaykmbvwddfrosljhlj.supabase.co';
+const SB_ANON = 'sb_publishable_lTD65lkqyXd9xWO8Yrn7sA_g7T1M4sS';
 const MOODS = ['😄','🙂','😐','😔','😢'];
+let sb = null;
+let sbUser = null;
+let DIARY = [];
 let curMood = null;
 
-function getDiary(){ try { const a = JSON.parse(localStorage.getItem(DIARY_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch(e){ return []; } }
-function saveDiary(list){ localStorage.setItem(DIARY_KEY, JSON.stringify(list)); }
+if (window.supabase && window.supabase.createClient) {
+  sb = window.supabase.createClient(SB_URL, SB_ANON);
+}
+
+function getDiary(){ return DIARY; }
+
+async function loadDiary(){
+  if (!sb) { DIARY = []; return; }
+  const { data, error } = await sb.from('diary').select('*').order('date', { ascending: false });
+  DIARY = error ? [] : (data || []);
+}
+
+async function initAuth(){
+  if (!sb) { renderAuth(false, '⚠️ 认证库未加载，请刷新重试'); return; }
+  const { data } = await sb.auth.getSession();
+  if (data && data.session) {
+    sbUser = data.session.user;
+    await loadDiary();
+    renderAuth(true);
+  } else {
+    renderAuth(false);
+  }
+  renderDiaryList();
+  renderReview();
+}
+
+function renderAuth(loggedIn, msg){
+  const el = document.getElementById('authArea');
+  if (!el) return;
+  if (!sb) { el.innerHTML = '<div class="note">⚠️ 认证库未加载（网络问题），刷新重试</div>'; return; }
+  if (loggedIn && sbUser) {
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+      '<span>✅ 已登录：<b>' + esc(sbUser.email) + '</b></span>' +
+      '<button type="button" class="rev-btn" onclick="doLogout()">退出登录</button></div>' +
+      (msg ? '<div class="note">' + esc(msg) + '</div>' : '');
+  } else {
+    el.innerHTML = '<div class="diary-form">' +
+      '<div class="df-row"><label>邮箱</label><input type="email" id="authEmail" placeholder="you@example.com"></div>' +
+      '<div class="df-row"><label>密码</label><input type="password" id="authPw" placeholder="至少 6 位"></div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button type="button" class="btn-primary" onclick="doLogin()">登录</button>' +
+        '<button type="button" class="rev-btn" style="padding:9px 16px;" onclick="doSignup()">注册新账号</button></div>' +
+      (msg ? '<div class="note" style="color:var(--accent);">' + esc(msg) + '</div>' : '') +
+      '<div class="note">注册即自动登录、免邮件确认；数据存云端，跨设备同步。</div>' +
+    '</div>';
+  }
+}
+
+function authVals(){
+  const e = document.getElementById('authEmail'), p = document.getElementById('authPw');
+  return { email: e ? e.value.trim() : '', pw: p ? p.value : '' };
+}
+
+async function doLogin(){
+  const { email, pw } = authVals();
+  if (!email || !pw) { renderAuth(false, '请填邮箱和密码'); return; }
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) { renderAuth(false, '登录失败：' + error.message); return; }
+  sbUser = data.user;
+  await loadDiary();
+  renderAuth(true); renderDiaryList(); renderReview();
+}
+
+async function doSignup(){
+  const { email, pw } = authVals();
+  if (!email || pw.length < 6) { renderAuth(false, '请填邮箱，密码至少 6 位'); return; }
+  const { data, error } = await sb.auth.signUp({ email, password: pw });
+  if (error) { renderAuth(false, '注册失败：' + error.message); return; }
+  if (data && data.session) {
+    sbUser = data.user;
+    await loadDiary();
+    renderAuth(true); renderDiaryList(); renderReview();
+  } else {
+    renderAuth(false, '✅ 注册成功，请登录');
+  }
+}
+
+async function doLogout(){
+  await sb.auth.signOut();
+  sbUser = null; DIARY = [];
+  renderAuth(false); renderDiaryList(); renderReview();
+}
 
 function renderMood(){
   const el = document.getElementById('moodPick');
@@ -680,32 +769,34 @@ function initDiaryForm(){
   renderMood();
 }
 
-function saveDiaryEntry(){
-  const content = document.getElementById('diaryContent').value.trim();
+async function saveDiaryEntry(){
   const msg = document.getElementById('diarySaveMsg');
+  if (!sbUser) { msg.textContent = '⚠️ 请先登录'; return; }
+  const content = document.getElementById('diaryContent').value.trim();
   if (!content) { msg.textContent = '⚠️ 至少写点今天学了什么'; return; }
-  const list = getDiary();
-  list.unshift({
-    id: 'e' + Date.now(),
+  const row = {
     date: document.getElementById('diaryDate').value || todayCN(),
     title: document.getElementById('diaryTitle').value.trim(),
     content: content,
     note: document.getElementById('diaryNote').value.trim(),
     mood: curMood
-  });
-  saveDiary(list);
+  };
+  const { error } = await sb.from('diary').insert(row);
+  if (error) { msg.textContent = '❌ 保存失败：' + error.message; return; }
   document.getElementById('diaryContent').value = '';
   document.getElementById('diaryTitle').value = '';
   document.getElementById('diaryNote').value = '';
   curMood = null; renderMood();
   msg.textContent = '✅ 已保存，并按遗忘曲线安排复习';
-  renderDiaryList();
+  await loadDiary();
+  renderDiaryList(); renderReview();
 }
 
-function deleteDiary(id){
+async function deleteDiary(id){
   if (!confirm('删除这条日记？')) return;
-  saveDiary(getDiary().filter(e => e.id !== id));
-  renderDiaryList();
+  await sb.from('diary').delete().eq('id', id);
+  await loadDiary();
+  renderDiaryList(); renderReview();
 }
 
 function nextReviewInfo(date){
@@ -717,7 +808,8 @@ function nextReviewInfo(date){
 function renderDiaryList(){
   const el = document.getElementById('diaryList');
   if (!el) return;
-  const list = getDiary();
+  if (!sbUser) { el.innerHTML = '<div class="empty">🔐 登录后查看和写日记</div>'; return; }
+  const list = DIARY;
   if (!list.length) { el.innerHTML = '<div class="empty">还没有日记，写下今天学了什么吧 ✍️</div>'; return; }
   el.innerHTML = list.map(e =>
     '<div class="diary-entry">' +
@@ -733,7 +825,7 @@ function renderDiaryList(){
 
 renderBooks();
 initDiaryForm();
-renderDiaryList();
+initAuth();
 </script>
 </body>
 </html>
