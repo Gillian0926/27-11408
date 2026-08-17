@@ -106,6 +106,43 @@
   .reader-body { flex:1; background:#fff; position:relative; overflow:hidden; }
   .reader-body iframe { width:100%; height:100%; border:none; display:block; }
   #epubView { width:100%; height:100%; }
+  /* 复习 & 日记 */
+  .rev-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-top:1px dashed var(--line); }
+  .rev-item:first-of-type { border-top:none; }
+  .rev-item .info { flex:1; min-width:0; }
+  .rev-item .t { font-weight:600; font-size:14px; }
+  .rev-item .t a { color:var(--ink); text-decoration:none; }
+  .rev-item .t a:hover { color:var(--accent); }
+  .rev-item .meta { font-size:12px; color:var(--muted); margin-top:2px; }
+  .rev-btn { border:1px solid var(--line); background:var(--card); color:var(--muted); padding:4px 12px;
+    border-radius:8px; cursor:pointer; font-size:12px; white-space:nowrap; }
+  .rev-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .rev-btn.done { background:var(--eng-soft); color:var(--eng); border-color:transparent; }
+  .pill { display:inline-block; font-size:11px; padding:1px 8px; border-radius:999px; font-weight:700; }
+  .pill.due { background:var(--accent-soft); color:var(--accent); }
+  .btn-primary { background:var(--accent); color:#fff; border:none; padding:9px 20px; border-radius:10px;
+    cursor:pointer; font-size:14px; font-weight:700; }
+  .btn-primary:hover { filter:brightness(1.06); }
+  .diary-form .df-row { margin-bottom:12px; }
+  .diary-form label { display:block; font-size:12px; color:var(--muted); font-weight:600; margin-bottom:4px; }
+  .diary-form input[type=text], .diary-form input[type=date], .diary-form textarea {
+    width:100%; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:14px;
+    font-family:inherit; background:#fff; color:var(--ink); }
+  .diary-form textarea { resize:vertical; }
+  .diary-form .req { color:var(--accent); }
+  .mood-btn { font-size:22px; cursor:pointer; padding:2px 8px; border-radius:8px; border:1px solid transparent; background:none; }
+  .mood-btn:hover { background:var(--accent-soft); }
+  .mood-btn.sel { background:var(--accent-soft); border-color:var(--accent); }
+  .diary-entry { border-top:1px dashed var(--line); padding:12px 0; }
+  .diary-entry:first-of-type { border-top:none; }
+  .diary-entry .head { display:flex; align-items:center; gap:8px; }
+  .diary-entry .d { font-weight:700; font-size:13px; }
+  .diary-entry .mood { font-size:18px; }
+  .diary-entry .del { margin-left:auto; cursor:pointer; color:var(--muted); font-size:12px; }
+  .diary-entry .del:hover { color:var(--accent); }
+  .diary-entry .body { font-size:13px; margin-top:6px; white-space:pre-wrap; }
+  .diary-entry .note2 { font-size:12px; color:var(--muted); margin-top:4px; white-space:pre-wrap; }
+  .diary-entry .nextrev { font-size:11px; color:var(--accent); margin-top:6px; }
   footer { text-align:center; color:var(--muted); font-size:11px; padding:8px 0 24px; }
 </style>
 </head>
@@ -137,6 +174,8 @@
     <div class="tab" data-view="cs408">📚 408</div>
     <div class="tab" data-view="plan">📋 计划</div>
     <div class="tab" data-view="books">📕 书架</div>
+    <div class="tab" data-view="review">🔁 复习</div>
+    <div class="tab" data-view="diary">📔 日记</div>
   </div>
 
   <!-- 主页 -->
@@ -184,6 +223,63 @@
     </div>
     <div class="shelf-grid" id="booksGrid"></div>
     <div class="shelf-wood"></div>
+  </div>
+
+  <!-- 复习 -->
+  <div class="view" id="view-review">
+    <div class="card">
+      <h2><span class="emo">🔁</span>今日待复习 <span id="reviewTodayLabel"></span></h2>
+      <div class="note">按艾宾浩斯遗忘曲线安排：学后 1/2/4/7/15 天、1/3/6 个月各复习一次，把短期记忆转成长期记忆。</div>
+      <div id="reviewDue"></div>
+    </div>
+    <div class="card">
+      <h2><span class="emo">⏳</span>已过期 · 补复习</h2>
+      <div id="reviewOverdue"></div>
+    </div>
+    <div class="card">
+      <h2><span class="emo">📅</span>未来 3 天预告</h2>
+      <div id="reviewUpcoming"></div>
+    </div>
+    <div class="card">
+      <h2><span class="emo">🧠</span>遗忘曲线说明</h2>
+      <div class="note" id="reviewLegend"></div>
+    </div>
+  </div>
+
+  <!-- 日记 -->
+  <div class="view" id="view-diary">
+    <div class="card">
+      <h2><span class="emo">📔</span>写学习日记</h2>
+      <div class="note">记录每天学了什么、状态如何；日记也会按遗忘曲线自动进入复习。</div>
+      <div class="diary-form">
+        <div class="df-row">
+          <label>日期</label>
+          <input type="date" id="diaryDate">
+        </div>
+        <div class="df-row">
+          <label>今天状态</label>
+          <div id="moodPick"></div>
+        </div>
+        <div class="df-row">
+          <label>标题（可选）</label>
+          <input type="text" id="diaryTitle" placeholder="如：今天攻克了线性代数行列式">
+        </div>
+        <div class="df-row">
+          <label>学了什么 <span class="req">*</span></label>
+          <textarea id="diaryContent" rows="4" placeholder="今天学习的内容，复习时会再看到它…"></textarea>
+        </div>
+        <div class="df-row">
+          <label>心得 / 状态（可选）</label>
+          <textarea id="diaryNote" rows="3" placeholder="今天学得怎么样？有什么卡点？"></textarea>
+        </div>
+        <button type="button" class="btn-primary" onclick="saveDiaryEntry()">💾 保存日记</button>
+        <div class="note" id="diarySaveMsg"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span class="emo">📚</span>我的日记</h2>
+      <div id="diaryList"></div>
+    </div>
   </div>
 </div>
 
@@ -234,6 +330,8 @@ tick(); setInterval(tick, 1000);
 fetch('data.json').then(r => r.json()).then(d => {
   DATA = d;
   renderHome();
+  renderReview();
+  renderLegend();
 }).catch(() => {
   document.getElementById('todayItems').innerHTML = '<div class="empty">数据加载失败</div>';
 });
@@ -280,6 +378,12 @@ document.querySelectorAll('.tab').forEach(t => {
       document.getElementById('view-home').classList.add('active');
     } else if (currentView === 'books') {
       document.getElementById('view-books').classList.add('active');
+    } else if (currentView === 'review') {
+      document.getElementById('view-review').classList.add('active');
+      renderReview(); renderLegend();
+    } else if (currentView === 'diary') {
+      document.getElementById('view-diary').classList.add('active');
+      renderDiaryList();
     } else {
       document.getElementById('view-content').classList.add('active');
       loadSection(currentView);
@@ -441,7 +545,195 @@ function closeReader(){
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeReader(); });
 
+// ---------- 遗忘曲线复习 ----------
+const REVIEW_INTERVALS = [
+  { days: 1, label: '第1次 · 1天后' },
+  { days: 2, label: '第2次 · 2天后' },
+  { days: 4, label: '第3次 · 4天后' },
+  { days: 7, label: '第4次 · 7天后' },
+  { days: 15, label: '第5次 · 15天后' },
+  { days: 30, label: '第6次 · 1个月后' },
+  { days: 90, label: '第7次 · 3个月后' },
+  { days: 180, label: '第8次 · 6个月后' },
+];
+const REVIEW_KEYS = ['english','politics','math_calc','math_la','math_prob'];
+const DONE_KEY = 'kaoyan_review_done_v1';
+
+function todayCN(){ return new Date(Date.now() + 8*3600*1000).toISOString().slice(0,10); }
+function daysBetween(a, b){ const x = new Date(a + 'T00:00:00'), y = new Date(b + 'T00:00:00'); return Math.round((y - x) / 86400000); }
+function addDays(s, n){ const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
+
+function classifyDiff(diff){
+  if (diff === 0) return { status:'new', label:'今日新学' };
+  for (let i = 0; i < REVIEW_INTERVALS.length; i++) {
+    if (diff === REVIEW_INTERVALS[i].days) return { status:'due', label: REVIEW_INTERVALS[i].label };
+  }
+  if (diff > 180) return { status:'done', label:'已过全部复习周期' };
+  let lastIdx = 0;
+  for (let i = 0; i < REVIEW_INTERVALS.length; i++) { if (REVIEW_INTERVALS[i].days < diff) lastIdx = i; }
+  const m = REVIEW_INTERVALS[lastIdx];
+  return { status:'overdue', label:'错过 ' + m.label + '（' + (diff - m.days) + ' 天前）' };
+}
+
+function getDone(){ try { return JSON.parse(localStorage.getItem(DONE_KEY) || '{}'); } catch(e){ return {}; } }
+function isDone(id){ return !!getDone()[(todayCN() + '::' + id)]; }
+function markDone(id){ const d = getDone(); d[todayCN() + '::' + id] = true; localStorage.setItem(DONE_KEY, JSON.stringify(d)); renderReview(); }
+
+function subjectTag(key){
+  if (key === 'diary') return '<span class="tag eng">📔</span>';
+  const map = { english:'eng', politics:'pol', math_calc:'math', math_la:'math', math_prob:'math' };
+  const emo = { english:'🇬🇧', politics:'🗞️', math_calc:'🧮', math_la:'🧮', math_prob:'🧮' };
+  return '<span class="tag ' + (map[key]||'math') + '">' + (emo[key]||'📌') + '</span>';
+}
+
+function itemLink(it){
+  if (it.type === 'diary') {
+    const e = getDiary().find(x => x.id === it.diaryId);
+    const body = e ? (e.content || '') : '';
+    return '<details><summary class="t" style="cursor:pointer;">📔 ' + esc(it.title) + '</summary>' +
+      '<div class="body" style="margin:6px 0 0 22px;white-space:pre-wrap;">' + esc(body) + '</div></details>';
+  }
+  return '<span class="t"><a href="#" onclick="openFileByPath(\'' + esc(it.path) + '\');return false;">' + esc(it.title) + '</a></span>';
+}
+
+function collectReviewItems(){
+  const today = todayCN();
+  const items = [];
+  DATA.filter(d => d.date && REVIEW_KEYS.includes(d.key)).forEach(d => {
+    const diff = daysBetween(d.date, today);
+    if (diff < 0) return;
+    items.push({ id:'c:' + d.path, type:'content', title:d.title, date:d.date, diff, path:d.path, key:d.key });
+  });
+  getDiary().forEach(e => {
+    const diff = daysBetween(e.date, today);
+    if (diff < 0) return;
+    items.push({ id:'d:' + e.id, type:'diary', title:(e.title || ('日记 · ' + e.date)), date:e.date, diff, diaryId:e.id });
+  });
+  return items;
+}
+
+function renderReview(){
+  const dueEl = document.getElementById('reviewDue');
+  if (!dueEl) return;
+  const lbl = document.getElementById('reviewTodayLabel');
+  if (lbl) lbl.textContent = '· ' + todayCN();
+  const items = collectReviewItems();
+  const due = [], overdue = [], upcoming = [];
+  items.forEach(it => {
+    const c = classifyDiff(it.diff);
+    if (c.status === 'due') due.push({ ...it, cls:c });
+    else if (c.status === 'overdue') overdue.push({ ...it, cls:c });
+    else {
+      const next = REVIEW_INTERVALS.find(iv => iv.days > it.diff);
+      if (next && (next.days - it.diff) <= 3) upcoming.push({ ...it, nextDays:next.days - it.diff, nextLabel:next.label });
+    }
+  });
+  const doneSet = getDone(), tk = todayCN() + '::';
+  const notDone = x => !doneSet[tk + x.id];
+  const dueF = due.filter(notDone), overF = overdue.filter(notDone);
+
+  function row(it, extra){
+    return '<div class="rev-item">' + subjectTag(it.key || 'diary') +
+      '<div class="info">' + itemLink(it) +
+      '<div class="meta">' + esc(it.date) + ' · 已学 ' + it.diff + ' 天 · ' + esc(extra) + '</div></div>' +
+      (isDone(it.id) ? '<span class="rev-btn done">✅ 已复习</span>' :
+        '<button type="button" class="rev-btn" onclick="markDone(\'' + esc(it.id) + '\')">✅ 完成</button>') + '</div>';
+  }
+
+  dueEl.innerHTML = dueF.length ? dueF.map(it => row(it, it.cls.label)).join('')
+    : '<div class="empty">今天没有到期复习，去学点新的吧 🦉</div>';
+  document.getElementById('reviewOverdue').innerHTML = overF.length ? overF.map(it => row(it, it.cls.label)).join('')
+    : '<div class="empty">没有漏掉的复习，很棒 🎉</div>';
+  document.getElementById('reviewUpcoming').innerHTML = upcoming.length ? upcoming.map(it =>
+    '<div class="rev-item">' + subjectTag(it.key || 'diary') +
+      '<div class="info">' + itemLink(it) +
+      '<div class="meta">' + esc(it.date) + ' · ' + it.nextDays + ' 天后（' + esc(it.nextLabel) + '）</div></div></div>').join('')
+    : '<div class="empty">未来 3 天暂无到期</div>';
+}
+
+function renderLegend(){
+  const el = document.getElementById('reviewLegend');
+  if (!el) return;
+  el.innerHTML = '学完当天建议快速回顾 3 次（<b>5 分钟 / 30 分钟 / 12 小时</b>）巩固短期记忆；长期复习节奏：<br>' +
+    REVIEW_INTERVALS.map(iv => '<span class="pill due" style="margin:2px 2px;">' + esc(iv.label) + '</span>').join('') +
+    '<br>记忆保持率 <b>R = e^(-t/S)</b>：初期遗忘快、后期放缓，按节奏复习就是把短期记忆变长期记忆。';
+}
+
+// ---------- 日记 ----------
+const DIARY_KEY = 'kaoyan_diary_v1';
+const MOODS = ['😄','🙂','😐','😔','😢'];
+let curMood = null;
+
+function getDiary(){ try { const a = JSON.parse(localStorage.getItem(DIARY_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch(e){ return []; } }
+function saveDiary(list){ localStorage.setItem(DIARY_KEY, JSON.stringify(list)); }
+
+function renderMood(){
+  const el = document.getElementById('moodPick');
+  if (!el) return;
+  el.innerHTML = MOODS.map(m => '<button type="button" class="mood-btn' + (curMood === m ? ' sel' : '') + '" onclick="pickMood(\'' + m + '\')">' + m + '</button>').join('');
+}
+function pickMood(m){ curMood = m; renderMood(); }
+
+function initDiaryForm(){
+  const d = document.getElementById('diaryDate');
+  if (d) d.value = todayCN();
+  renderMood();
+}
+
+function saveDiaryEntry(){
+  const content = document.getElementById('diaryContent').value.trim();
+  const msg = document.getElementById('diarySaveMsg');
+  if (!content) { msg.textContent = '⚠️ 至少写点今天学了什么'; return; }
+  const list = getDiary();
+  list.unshift({
+    id: 'e' + Date.now(),
+    date: document.getElementById('diaryDate').value || todayCN(),
+    title: document.getElementById('diaryTitle').value.trim(),
+    content: content,
+    note: document.getElementById('diaryNote').value.trim(),
+    mood: curMood
+  });
+  saveDiary(list);
+  document.getElementById('diaryContent').value = '';
+  document.getElementById('diaryTitle').value = '';
+  document.getElementById('diaryNote').value = '';
+  curMood = null; renderMood();
+  msg.textContent = '✅ 已保存，并按遗忘曲线安排复习';
+  renderDiaryList();
+}
+
+function deleteDiary(id){
+  if (!confirm('删除这条日记？')) return;
+  saveDiary(getDiary().filter(e => e.id !== id));
+  renderDiaryList();
+}
+
+function nextReviewInfo(date){
+  const diff = daysBetween(date, todayCN());
+  const next = REVIEW_INTERVALS.find(iv => iv.days > diff);
+  return next ? ('下次复习：' + addDays(date, next.days) + '（' + next.label + '）') : '已过全部复习周期';
+}
+
+function renderDiaryList(){
+  const el = document.getElementById('diaryList');
+  if (!el) return;
+  const list = getDiary();
+  if (!list.length) { el.innerHTML = '<div class="empty">还没有日记，写下今天学了什么吧 ✍️</div>'; return; }
+  el.innerHTML = list.map(e =>
+    '<div class="diary-entry">' +
+      '<div class="head"><span class="mood">' + (e.mood || '📝') + '</span>' +
+        '<span class="d">' + esc(e.date) + (e.title ? ' · ' + esc(e.title) : '') + '</span>' +
+        '<span class="del" onclick="deleteDiary(\'' + e.id + '\')">🗑 删除</span></div>' +
+      '<div class="body">' + esc(e.content) + '</div>' +
+      (e.note ? '<div class="note2">💭 ' + esc(e.note) + '</div>' : '') +
+      '<div class="nextrev">🔁 ' + esc(nextReviewInfo(e.date)) + '</div>' +
+    '</div>'
+  ).join('');
+}
+
 renderBooks();
+initDiaryForm();
+renderDiaryList();
 </script>
 </body>
 </html>
