@@ -454,13 +454,30 @@ function openFileByPath(path){
 
 function openFile(key, path){ openFileByPath(path); }
 
+function protectMath(md){
+  // 用占位符保护数学公式，避免 marked 把 & 转义成 &amp;（会导致矩阵/对齐失效）
+  const stash = [];
+  const re = /\$\$[\s\S]*?\$\$|\$[^$\n]+\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]/g;
+  const out = md.replace(re, (m) => { stash.push(m); return 'MATHPLACEHOLDER' + (stash.length - 1) + 'MATH'; });
+  return { out, stash };
+}
+function restoreMath(html, stash){
+  for (let i = 0; i < stash.length; i++) {
+    html = html.split('MATHPLACEHOLDER' + i + 'MATH').join(stash[i]);
+  }
+  return html;
+}
+
 function renderDoc(d){
   const el = document.getElementById('docView');
   const gh = 'https://github.com/Gillian0926/27-11408/blob/main/' + d.path;
   const bar = '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">' +
     '<a href="' + esc(gh) + '" target="_blank" style="color:var(--accent);">📂 在 GitHub 查看原文</a></div>';
   if (window.marked) {
-    el.innerHTML = bar + marked.parse(d.content);
+    const p = protectMath(d.content);
+    let html = marked.parse(p.out);
+    html = restoreMath(html, p.stash);
+    el.innerHTML = bar + html;
   } else {
     el.innerHTML = bar + '<div class="empty">渲染库加载失败，<a href="' + esc(d.url) + '" target="_blank">点此查看原文</a></div>';
   }
