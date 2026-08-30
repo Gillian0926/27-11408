@@ -592,21 +592,68 @@ function todayCN(){ return new Date(Date.now() + 8*3600*1000).toISOString().slic
 function daysBetween(a, b){ const x = new Date(a + 'T00:00:00'), y = new Date(b + 'T00:00:00'); return Math.round((y - x) / 86400000); }
 function addDays(s, n){ const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 
-function classifyDiff(diff){
-  if (diff === 0) return { status:'new', label:'今日新学' };
-  for (let i = 0; i < REVIEW_INTERVALS.length; i++) {
-    if (diff === REVIEW_INTERVALS[i].days) return { status:'due', label: REVIEW_INTERVALS[i].label };
-  }
-  if (diff > 180) return { status:'done', label:'已过全部复习周期' };
-  let lastIdx = 0;
-  for (let i = 0; i < REVIEW_INTERVALS.length; i++) { if (REVIEW_INTERVALS[i].days < diff) lastIdx = i; }
-  const m = REVIEW_INTERVALS[lastIdx];
-  return { status:'overdue', label:'错过 ' + m.label + '（' + (diff - m.days) + ' 天前）' };
+const PROG_KEY = 'kaoyan_review_progress_v1';
+let migDone = false;
+let diaryLoaded = false;
+
+function getProgRaw(){ try { return JSON.parse(localStorage.getItem(PROG_KEY) || '{}'); } catch(e){ return {}; } }
+function getProg(){ migrate(); return getProgRaw(); }
+
+function levelForDiff(diff){
+  let n = 0;
+  for (let i = 0; i < REVIEW_INTERVALS.length; i++) { if (REVIEW_INTERVALS[i].days <= diff) n++; }
+  return n;
 }
 
-function getDone(){ try { return JSON.parse(localStorage.getItem(DONE_KEY) || '{}'); } catch(e){ return {}; } }
-function isDone(id){ return !!getDone()[(todayCN() + '::' + id)]; }
-function markDone(id){ const d = getDone(); d[todayCN() + '::' + id] = true; localStorage.setItem(DONE_KEY, JSON.stringify(d)); renderReview(); }
+function classify(diff, level){
+  if (diff < 0) return { status:'future' };
+  if (diff === 0) return { status:'new', label:'今日新学' };
+  if (diff > 180) return { status:'done', label:'已过全部复习周期' };
+  if (level >= REVIEW_INTERVALS.length) return { status:'done', label:'已过全部复习周期' };
+  const next = REVIEW_INTERVALS[level];
+  if (diff === next.days) return { status:'due', label: next.label };
+  if (diff > next.days) return { status:'overdue', label:'错过 ' + next.label + '（' + (diff - next.days) + ' 天前）' };
+  return { status:'upcoming', daysUntil: next.days - diff, label: next.label };
+}
+
+function itemLearnDate(id){
+  if (id.indexOf('c:') === 0) { const d = DATA.find(x => x.path === id.slice(2)); return d ? d.date : ''; }
+  if (id.indexOf('d:') === 0) { const e = DIARY.find(x => x.id === id.slice(2)); return e ? e.date : ''; }
+  return '';
+}
+
+// 一次性迁移：旧版把「完成」按日期存（date::id），导致补复习隔天又冒出来。
+// 新版改成按条目存「复习进度（level）」，完成一次就推进，隔天不会回退。
+function migrate(){
+  if (migDone) return;
+  const oldRaw = localStorage.getItem(DONE_KEY);
+  if (!oldRaw) { migDone = true; return; }
+  let old = {}; try { old = JSON.parse(oldRaw) || {}; } catch(e){ old = {}; }
+  const prog = getProgRaw();
+  let changed = false, pending = false;
+  for (const k of Object.keys(old)) {
+    const idx = k.indexOf('::');
+    if (idx < 0) continue;
+    const dateStr = k.slice(0, idx), id = k.slice(idx + 2);
+    const learn = itemLearnDate(id);
+    if (!learn) {
+      if (id.indexOf('d:') === 0 && !diaryLoaded) pending = true;
+      continue;
+    }
+    const lvl = levelForDiff(daysBetween(learn, dateStr));
+    if (lvl > (prog[id] || 0)) { prog[id] = lvl; changed = true; }
+  }
+  if (changed) localStorage.setItem(PROG_KEY, JSON.stringify(prog));
+  if (!pending) { localStorage.removeItem(DONE_KEY); migDone = true; }
+}
+
+function markDone(id){
+  const prog = getProg();
+  const it = collectReviewItems().find(x => x.id === id);
+  if (it) prog[id] = Math.max(prog[id] || 0, levelForDiff(it.diff));
+  localStorage.setItem(PROG_KEY, JSON.stringify(prog));
+  renderReview();
+}
 
 function subjectTag(key){
   if (key === 'diary') return '<span class="tag eng">📔</span>';
@@ -647,31 +694,25 @@ function renderReview(){
   const lbl = document.getElementById('reviewTodayLabel');
   if (lbl) lbl.textContent = '· ' + todayCN();
   const items = collectReviewItems();
+  const prog = getProg();
   const due = [], overdue = [], upcoming = [];
   items.forEach(it => {
-    const c = classifyDiff(it.diff);
+    const c = classify(it.diff, prog[it.id] || 0);
     if (c.status === 'due') due.push({ ...it, cls:c });
     else if (c.status === 'overdue') overdue.push({ ...it, cls:c });
-    else {
-      const next = REVIEW_INTERVALS.find(iv => iv.days > it.diff);
-      if (next && (next.days - it.diff) <= 3) upcoming.push({ ...it, nextDays:next.days - it.diff, nextLabel:next.label });
-    }
+    else if (c.status === 'upcoming' && c.daysUntil <= 3) upcoming.push({ ...it, nextDays:c.daysUntil, nextLabel:c.label });
   });
-  const doneSet = getDone(), tk = todayCN() + '::';
-  const notDone = x => !doneSet[tk + x.id];
-  const dueF = due.filter(notDone), overF = overdue.filter(notDone);
 
   function row(it, extra){
     return '<div class="rev-item">' + subjectTag(it.key || 'diary') +
       '<div class="info">' + itemLink(it) +
       '<div class="meta">' + esc(it.date) + ' · 已学 ' + it.diff + ' 天 · ' + esc(extra) + '</div></div>' +
-      (isDone(it.id) ? '<span class="rev-btn done">✅ 已复习</span>' :
-        '<button type="button" class="rev-btn" onclick="markDone(\'' + esc(it.id) + '\')">✅ 完成</button>') + '</div>';
+      '<button type="button" class="rev-btn" onclick="markDone(\'' + esc(it.id) + '\')">✅ 完成</button></div>';
   }
 
-  dueEl.innerHTML = dueF.length ? dueF.map(it => row(it, it.cls.label)).join('')
+  dueEl.innerHTML = due.length ? due.map(it => row(it, it.cls.label)).join('')
     : '<div class="empty">今天没有到期复习，去学点新的吧 🦉</div>';
-  document.getElementById('reviewOverdue').innerHTML = overF.length ? overF.map(it => row(it, it.cls.label)).join('')
+  document.getElementById('reviewOverdue').innerHTML = overdue.length ? overdue.map(it => row(it, it.cls.label)).join('')
     : '<div class="empty">没有漏掉的复习，很棒 🎉</div>';
   document.getElementById('reviewUpcoming').innerHTML = upcoming.length ? upcoming.map(it =>
     '<div class="rev-item">' + subjectTag(it.key || 'diary') +
@@ -704,9 +745,10 @@ if (window.supabase && window.supabase.createClient) {
 function getDiary(){ return DIARY; }
 
 async function loadDiary(){
-  if (!sb) { DIARY = []; return; }
+  if (!sb) { DIARY = []; diaryLoaded = true; return; }
   const { data, error } = await sb.from('diary').select('*').order('date', { ascending: false });
   DIARY = error ? [] : (data || []);
+  diaryLoaded = true;
 }
 
 async function initAuth(){
