@@ -55,6 +55,18 @@
   .tag.cs { background:var(--cs-soft); color:var(--cs); }
   .tag.mech { background:var(--mech-soft); color:var(--mech); }
   .item .desc { color:var(--muted); font-size:12px; margin-top:2px; }
+  /* 学习台账 */
+  .subj-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .tk-scroll { max-height:64vh; overflow:auto; }
+  table.tk { width:100%; border-collapse:collapse; font-size:12px; }
+  table.tk th { background:#f0f1f6; color:var(--muted); font-size:11px; padding:5px 4px; position:sticky; top:0; z-index:1; }
+  table.tk td { border-bottom:1px solid var(--line); padding:3px 4px; }
+  table.tk input, table.tk select { border:1px solid var(--line); border-radius:6px; padding:3px 5px;
+    font-size:12px; width:100%; background:#fff; font-family:inherit; color:var(--ink); }
+  table.tk input:focus, table.tk select:focus { outline:none; border-color:var(--accent); }
+  table.tk .tk-name { font-weight:600; }
+  .tk-bar { height:8px; border-radius:999px; background:var(--line); overflow:hidden; margin-top:3px; }
+  .tk-bar > i { display:block; height:100%; background:linear-gradient(90deg,#e0457b,#8b5cf6); }
   /* 模块入口（科目按钮） */
   .subj-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:14px; }
   .subj-btn { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:22px 18px;
@@ -185,6 +197,7 @@
     <div class="tab" data-view="mech">⚙️ 机械工程</div>
     <div class="tab" data-view="comp">💻 计算机</div>
     <div class="tab" data-view="plan">📋 计划</div>
+    <div class="tab" data-view="track">📈 台账</div>
     <div class="tab" data-view="books">📕 书架</div>
     <div class="tab" data-view="review">🔁 复习</div>
     <div class="tab" data-view="diary">📔 日记</div>
@@ -257,6 +270,16 @@
       <h2><span class="emo">🧠</span>遗忘曲线说明</h2>
       <div class="note" id="reviewLegend"></div>
     </div>
+  </div>
+
+  <!-- 学习台账 -->
+  <div class="view" id="view-track">
+    <div class="card">
+      <h2><span class="emo">📈</span>学习台账 <span id="trackSync" style="font-size:12px;font-weight:600;color:var(--muted);"></span></h2>
+      <div class="note">四科进度 + 每日打卡，直接改、自动保存。登录后云端同步，换设备也能看到。</div>
+      <div id="trackAuth"></div>
+    </div>
+    <div id="trackArea"></div>
   </div>
 
   <!-- 日记 -->
@@ -410,6 +433,9 @@ document.querySelectorAll('.tab').forEach(t => {
     } else if (currentView === 'diary') {
       document.getElementById('view-diary').classList.add('active');
       renderDiaryList();
+    } else if (currentView === 'track') {
+      document.getElementById('view-track').classList.add('active');
+      renderTrack();
     } else {
       document.getElementById('view-content').classList.add('active');
       loadSection(currentView);
@@ -826,7 +852,9 @@ function getDiary(){ return DIARY; }
 async function loadDiary(){
   if (!sb) { DIARY = []; diaryLoaded = true; return; }
   const { data, error } = await sb.from('diary').select('*').order('date', { ascending: false });
-  DIARY = error ? [] : (data || []);
+  const rows = error ? [] : (data || []);
+  trackCloud = rows.find(r => r.title === TRACK_TITLE) || null;   // 台账专用行，不计入日记
+  DIARY = rows.filter(r => r.title !== TRACK_TITLE);
   diaryLoaded = true;
 }
 
@@ -842,6 +870,8 @@ async function initAuth(){
   }
   renderDiaryList();
   renderReview();
+  if (sbUser) { await loadTrack(); }
+  renderTrack();
 }
 
 function renderAuth(loggedIn, msg){
@@ -879,6 +909,7 @@ async function doLogin(){
   sbUser = data.user;
   await loadDiary();
   renderAuth(true); renderDiaryList(); renderReview();
+  await loadTrack(); renderTrack();
 }
 
 async function doSignup(){
@@ -890,6 +921,7 @@ async function doSignup(){
     sbUser = data.user;
     await loadDiary();
     renderAuth(true); renderDiaryList(); renderReview();
+    await loadTrack(); renderTrack();
   } else {
     renderAuth(false, '✅ 注册成功，请登录');
   }
@@ -897,8 +929,8 @@ async function doSignup(){
 
 async function doLogout(){
   await sb.auth.signOut();
-  sbUser = null; DIARY = [];
-  renderAuth(false); renderDiaryList(); renderReview();
+  sbUser = null; DIARY = []; trackCloud = null; TRACK = null;
+  renderAuth(false); renderDiaryList(); renderReview(); renderTrack();
 }
 
 function renderMood(){
@@ -966,6 +998,200 @@ function renderDiaryList(){
       '<div class="nextrev">🔁 ' + esc(nextReviewInfo(e.date)) + '</div>' +
     '</div>'
   ).join('');
+}
+
+/* ================= 学习台账（可编辑 + 云端同步） ================= */
+const TRACK_TITLE = '__study_track__';
+const TRACK_LS = 'kaoyan_track_v1';
+const TRACK_SUBJECTS = [
+  { id:'mech', name:'机械原理', emoji:'⚙️' },
+  { id:'math2', name:'数学二', emoji:'🧮' },
+  { id:'english', name:'英语二', emoji:'🇬🇧' },
+  { id:'politics', name:'政治', emoji:'🗞️' },
+];
+const TRACK_STATUS = ['未开始','进行中','已完成','待复习'];
+const TRACK_DEFAULTS = {
+  mech: [
+    ['平面机构的结构分析（运动简图·自由度·组成原理）','2026-09-25','2026-09-28'],
+    ['平面机构的运动分析（瞬心法·相对运动图解法）','2026-09-29','2026-10-03'],
+    ['平面机构的力分析（摩擦·总反力·效率与自锁）','2026-10-04','2026-10-08'],
+    ['平面连杆机构及其设计（曲柄条件·传动角·设计）','2026-10-09','2026-10-13'],
+    ['凸轮机构及其设计（运动规律·反转法）','2026-10-14','2026-10-18'],
+    ['齿轮机构及其设计（渐开线·尺寸计算·根切·变位）','2026-10-19','2026-10-25'],
+    ['轮系及其设计（定轴·周转·混合轮系传动比）','2026-10-26','2026-10-30'],
+    ['机械系统的运转及其速度波动的调节（等效·飞轮）','2026-10-31','2026-11-03'],
+    ['机械的平衡设计与实验（静平衡·动平衡）','2026-11-04','2026-11-06'],
+    ['真题第一轮（2009-2015，按章练）','2026-11-07','2026-11-20'],
+    ['真题第二轮（2016-2023，限时）','2026-11-21','2026-12-05'],
+    ['模拟 + 错题 + 公式默写','2026-12-06','2026-12-15'],
+  ],
+  math2: [
+    ['函数、极限、连续','2026-09-25','2026-09-30'],
+    ['一元函数微分学','2026-10-01','2026-10-08'],
+    ['一元函数积分学','2026-10-09','2026-10-18'],
+    ['多元函数微分学','2026-10-19','2026-10-24'],
+    ['二重积分','2026-10-25','2026-10-30'],
+    ['常微分方程（已有基础，快速过）','2026-10-31','2026-11-04'],
+    ['行列式','2026-11-05','2026-11-08'],
+    ['矩阵','2026-11-09','2026-11-13'],
+    ['向量','2026-11-14','2026-11-18'],
+    ['线性方程组','2026-11-19','2026-11-23'],
+    ['特征值与特征向量','2026-11-24','2026-11-28'],
+    ['二次型','2026-11-29','2026-12-03'],
+    ['数学二真题套卷 + 错题','2026-12-04','2026-12-15'],
+  ],
+  english: [
+    ['核心单词（每日 20-30 分钟）','2026-09-25','2026-12-18'],
+    ['长难句 + 语法基础','2026-09-25','2026-10-15'],
+    ['阅读理解（英语二真题）','2026-10-01','2026-11-20'],
+    ['完形填空','2026-10-20','2026-11-30'],
+    ['新题型（七选五 / 小标题）','2026-11-01','2026-11-25'],
+    ['翻译（英译汉）','2026-11-05','2026-11-30'],
+    ['小作文（书信 / 通知）模板','2026-11-10','2026-11-30'],
+    ['大作文（图表作文）模板 + 仿写','2026-11-10','2026-12-05'],
+    ['真题套卷（限时）','2026-11-25','2026-12-15'],
+    ['作文背诵 / 默写','2026-12-01','2026-12-15'],
+  ],
+  politics: [
+    ['马原（马克思主义基本原理）','2026-09-25','2026-10-20'],
+    ['毛中特（毛概 + 理论体系）','2026-10-21','2026-11-05'],
+    ['史纲（中国近现代史纲要）','2026-11-06','2026-11-15'],
+    ['思修法基（思想道德与法治）','2026-11-16','2026-11-22'],
+    ['时政 / 当代（形势与政策）','2026-11-23','2026-12-10'],
+    ['选择题刷题（1000 题等）','2026-10-01','2026-12-15'],
+    ['大题背诵（大题模板 / 肖四肖八）','2026-11-20','2026-12-15'],
+    ['模拟卷 + 错题','2026-12-01','2026-12-15'],
+  ],
+};
+let TRACK = null, trackCloud = null, trackSubject = 'mech', trackTimer = null;
+
+function buildDefaults(){
+  const subj = {};
+  for (const k of Object.keys(TRACK_DEFAULTS)) {
+    subj[k] = TRACK_DEFAULTS[k].map((r, i) => ({ seq:i+1, name:r[0], start:r[1], end:r[2], status:'未开始', percent:0, done:0, wrong:0, note:'' }));
+  }
+  return { subjects: subj, daily: {} };
+}
+function ensureTrack(){
+  if (TRACK) return;
+  let d = null; try { d = JSON.parse(localStorage.getItem(TRACK_LS) || 'null'); } catch(e){}
+  TRACK = d || buildDefaults();
+  if (!TRACK.subjects) TRACK = buildDefaults();
+  if (!TRACK.daily) TRACK.daily = {};
+}
+async function loadTrack(){
+  ensureTrack();
+  if (sb && trackCloud && trackCloud.content) {
+    try { const d = JSON.parse(trackCloud.content); if (d && d.subjects) TRACK = d; } catch(e){}
+  } else if (sb && !trackCloud) {
+    schedulePersist();  // 首次登录：把本机数据存到云端
+  }
+}
+function schedulePersist(){ if (trackTimer) clearTimeout(trackTimer); trackTimer = setTimeout(persistTrack, 700); }
+async function persistTrack(){
+  try { localStorage.setItem(TRACK_LS, JSON.stringify(TRACK)); } catch(e){}
+  if (!sbUser) return;
+  const content = JSON.stringify(TRACK);
+  try {
+    if (trackCloud && trackCloud.id) {
+      await sb.from('diary').update({ content, date: todayCN(), updated_at: new Date().toISOString() }).eq('id', trackCloud.id);
+    } else {
+      const { data } = await sb.from('diary').insert({ date: todayCN(), title: TRACK_TITLE, content, mood: '📈', note: '（学习台账，自动保存，请勿删除）' }).select();
+      if (data && data[0]) trackCloud = data[0];
+    }
+    const el = document.getElementById('trackSync');
+    if (el) el.textContent = '· 已保存 ☁️ ' + new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' });
+  } catch(e){}
+}
+function trackSet(subj, idx, field, val){
+  ensureTrack();
+  const r = TRACK.subjects[subj][idx]; if (!r) return;
+  r[field] = (field === 'percent' || field === 'done' || field === 'wrong') ? (parseInt(val,10) || 0) : val;
+  schedulePersist();
+}
+function trackDay(date, field, val){
+  ensureTrack();
+  const r = TRACK.daily[date] = TRACK.daily[date] || {};
+  r[field] = (['mechH','math2H','eng','pol'].includes(field)) ? (parseFloat(val) || 0) : val;
+  schedulePersist();
+}
+function trackDates(){
+  const out = []; const d = new Date('2026-09-25T00:00:00'); const end = new Date('2026-12-18T00:00:00');
+  while (d <= end) { out.push(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0')); d.setDate(d.getDate()+1); }
+  return out;
+}
+function subjectAvg(id){
+  const rows = (TRACK && TRACK.subjects[id]) || [];
+  if (!rows.length) return 0;
+  return Math.round(rows.reduce((s,r) => s + (r.percent||0), 0) / rows.length);
+}
+function tkLoginHtml(){
+  if (!sb) return '<div class="note">⚠️ 认证库未加载，请刷新</div>';
+  if (sbUser) return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span>✅ 已登录：<b>' + esc(sbUser.email) + '</b>（云端同步）</span><button type="button" class="rev-btn" onclick="doLogout()">退出登录</button></div>';
+  return '<div class="diary-form"><div class="df-row"><label>邮箱</label><input type="email" id="tkEmail" placeholder="you@example.com"></div>' +
+    '<div class="df-row"><label>密码</label><input type="password" id="tkPw" placeholder="至少 6 位"></div>' +
+    '<div style="display:flex;gap:8px;"><button type="button" class="btn-primary" onclick="tkLogin()">登录</button>' +
+    '<button type="button" class="rev-btn" style="padding:9px 16px;" onclick="tkSignup()">注册新账号</button></div>' +
+    '<div class="note" id="tkMsg">未登录也可以编辑，但改动只存在这个浏览器；登录后自动同步到云端。</div></div>';
+}
+async function tkLogin(){
+  const e = document.getElementById('tkEmail'), p = document.getElementById('tkPw'), m = document.getElementById('tkMsg');
+  if (!e.value || !p.value) { m.textContent = '请填邮箱和密码'; return; }
+  const { data, error } = await sb.auth.signInWithPassword({ email:e.value.trim(), password:p.value });
+  if (error) { m.textContent = '登录失败：' + error.message; return; }
+  sbUser = data.user; await loadDiary(); await loadTrack(); renderAuth(true); renderDiaryList(); renderReview(); renderTrack();
+}
+async function tkSignup(){
+  const e = document.getElementById('tkEmail'), p = document.getElementById('tkPw'), m = document.getElementById('tkMsg');
+  if (!e.value || p.value.length < 6) { m.textContent = '请填邮箱，密码至少 6 位'; return; }
+  const { data, error } = await sb.auth.signUp({ email:e.value.trim(), password:p.value });
+  if (error) { m.textContent = '注册失败：' + error.message; return; }
+  if (data && data.session) { sbUser = data.user; await loadDiary(); await loadTrack(); renderAuth(true); renderDiaryList(); renderReview(); renderTrack(); }
+  else { m.textContent = '✅ 注册成功，请登录'; }
+}
+function renderTrack(){
+  const syncEl = document.getElementById('trackSync'); if (!syncEl) return;
+  ensureTrack();
+  syncEl.textContent = sbUser ? '· 云端同步 ☁️' : '· 本机保存';
+  document.getElementById('trackAuth').innerHTML = tkLoginHtml();
+  let h = '<div class="card"><div class="subj-tabs">';
+  TRACK_SUBJECTS.forEach(s => {
+    h += '<div class="tab' + (s.id === trackSubject ? ' active' : '') + '" style="font-size:12px;padding:5px 12px;" onclick="trackSubject=\'' + s.id + '\';renderTrack();">' + s.emoji + ' ' + s.name + ' <b style="opacity:.7">' + subjectAvg(s.id) + '%</b></div>';
+  });
+  h += '</div><div class="tk-scroll"><table class="tk"><thead><tr><th>#</th><th>章节 / 任务</th><th>开始</th><th>完成</th><th>状态</th><th>完成度</th><th>做题</th><th>错题</th><th>备注</th></tr></thead><tbody>';
+  const rows = TRACK.subjects[trackSubject] || [];
+  rows.forEach((r, i) => {
+    const opts = TRACK_STATUS.map(s => '<option' + (r.status === s ? ' selected' : '') + '>' + s + '</option>').join('');
+    h += '<tr>' +
+      '<td>' + (i+1) + '</td>' +
+      '<td class="tk-name">' + esc(r.name) + '<div class="tk-bar"><i style="width:' + (r.percent||0) + '%"></i></div></td>' +
+      '<td><input type="date" value="' + (r.start||'') + '" onchange="trackSet(\'' + trackSubject + '\',' + i + ',\'start\',this.value)"></td>' +
+      '<td><input type="date" value="' + (r.end||'') + '" onchange="trackSet(\'' + trackSubject + '\',' + i + ',\'end\',this.value)"></td>' +
+      '<td><select onchange="trackSet(\'' + trackSubject + '\',' + i + ',\'status\',this.value)">' + opts + '</select></td>' +
+      '<td><input type="number" min="0" max="100" value="' + (r.percent||0) + '" onchange="trackSet(\'' + trackSubject + '\',' + i + ',\'percent\',this.value)" style="width:60px;"></td>' +
+      '<td><input type="number" min="0" value="' + (r.done||0) + '" onchange="trackSet(\'' + trackSubject + '\',' + i + ',\'done\',this.value)" style="width:56px;"></td>' +
+      '<td><input type="number" min="0" value="' + (r.wrong||0) + '" onchange="trackSet(\'' + trackSubject + '\',' + i + ',\'wrong\',this.value)" style="width:56px;"></td>' +
+      '<td><input type="text" value="' + esc(r.note||'') + '" onchange="trackSet(\'' + trackSubject + '\',' + i + ',\'note\',this.value)"></td>' +
+      '</tr>';
+  });
+  h += '</tbody></table></div></div>';
+  h += '<div class="card"><h2 style="font-size:15px;"><span class="emo">🗓️</span>每日打卡 <span style="font-size:12px;font-weight:600;color:var(--muted);">（机械/数学填内容与小时，英语/政治填分钟）</span></h2>' +
+    '<div class="tk-scroll"><table class="tk"><thead><tr><th>日期</th><th>机械原理</th><th>h</th><th>数学二</th><th>h</th><th>英语 m</th><th>政治 m</th><th>完成情况</th><th>备注</th></tr></thead><tbody>';
+  for (const d of trackDates()) {
+    const r = TRACK.daily[d] || {};
+    const st = ['','未开始','进行中','已完成','部分完成'].map(s => '<option' + (r.status === s ? ' selected' : '') + '>' + s + '</option>').join('');
+    h += '<tr><td class="tk-name">' + d + '</td>' +
+      '<td><input type="text" value="' + esc(r.mech||'') + '" onchange="trackDay(\'' + d + '\',\'mech\',this.value)"></td>' +
+      '<td><input type="number" min="0" step="0.5" value="' + (r.mechH||'') + '" onchange="trackDay(\'' + d + '\',\'mechH\',this.value)" style="width:52px;"></td>' +
+      '<td><input type="text" value="' + esc(r.math2||'') + '" onchange="trackDay(\'' + d + '\',\'math2\',this.value)"></td>' +
+      '<td><input type="number" min="0" step="0.5" value="' + (r.math2H||'') + '" onchange="trackDay(\'' + d + '\',\'math2H\',this.value)" style="width:52px;"></td>' +
+      '<td><input type="number" min="0" value="' + (r.eng||'') + '" onchange="trackDay(\'' + d + '\',\'eng\',this.value)" style="width:56px;"></td>' +
+      '<td><input type="number" min="0" value="' + (r.pol||'') + '" onchange="trackDay(\'' + d + '\',\'pol\',this.value)" style="width:56px;"></td>' +
+      '<td><select onchange="trackDay(\'' + d + '\',\'status\',this.value)">' + st + '</select></td>' +
+      '<td><input type="text" value="' + esc(r.note||'') + '" onchange="trackDay(\'' + d + '\',\'note\',this.value)"></td></tr>';
+  }
+  h += '</tbody></table></div></div>';
+  document.getElementById('trackArea').innerHTML = h;
 }
 
 renderBooks();
