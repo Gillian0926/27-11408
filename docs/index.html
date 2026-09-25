@@ -457,6 +457,15 @@ const KEY_ORDER = {
 };
 
 const MODULES = {
+  english: {
+    emoji: '🇬🇧', title: '英语二',
+    desc: '英语二（204）｜大作文考图表，小作文考书信 / 通知',
+    subjects: [
+      { id:'daily', emoji:'📖', name:'每日精读', sub:'每日一句 · 翻译拆解 · 重点词组', keys:['english'] },
+      { id:'essay', emoji:'✍️', name:'作文技巧', sub:'图表 / 图画模板 · 高分句型 · 仿写句式', keys:['essay'] },
+      { id:'bank', emoji:'📚', name:'素材库', sub:'素材句库 · 主题词表 · 模板汇总 · 范文导览', keys:['essay_bank'] },
+    ],
+  },
   mech: {
     emoji: '⚙️', title: '机械工程',
     desc: '北京信息科技大学 · 机电学院 · 机械工程（085501，专硕）｜初试：政治 + 英语二 + 数学二 + 机械原理（801）',
