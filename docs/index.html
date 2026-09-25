@@ -473,6 +473,7 @@ const MODULES = {
     subjects: [
       { id:'principle', emoji:'⚙️', name:'机械原理', sub:'801 · 结构分析 / 运动 / 力 / 连杆 / 凸轮 / 齿轮 / 轮系 / 调速 / 平衡', keys:['mech_principle','mech_principle_past'] },
       { id:'math2', emoji:'🧮', name:'数学二', sub:'302 · 高等数学 + 线性代数（不考概率论）', keys:['mech_math2_calc','mech_math2_la'] },
+      { id:'plan', emoji:'📋', name:'学习计划', sub:'四阶段安排 · 每日时间表 · 模块说明', keys:['mech_home'] },
     ],
   },
   comp: {
@@ -482,6 +483,7 @@ const MODULES = {
     subjects: [
       { id:'math1', emoji:'🧮', name:'数学一（归档）', sub:'微积分 + 线性代数 + 概率论', keys:['comp_math_calc','comp_math_la','comp_math_prob'] },
       { id:'cs408', emoji:'💻', name:'408（归档）', sub:'数据结构 / 计算机组成 / 操作系统 / 计算机网络', keys:['cs408','os','network','ds','co'] },
+      { id:'home', emoji:'📄', name:'总览 / 说明', sub:'为什么归档 · 与现在的区别', keys:['comp_home'] },
     ],
   },
 };
@@ -514,8 +516,6 @@ function showChooser(view){
       '<div class="sb-count">' + cnt(s.keys) + ' 份内容</div></div>';
   });
   h += '</div>';
-  const home = mod.home && DATA.find(d => d.key === mod.home);
-  if (home) h += '<div class="card"><div class="item"><a href="#" onclick="openFileByPath(\'' + esc(home.path) + '\');return false;">📄 ' + esc(home.title) + '</a><div class="desc">模块总览</div></div></div>';
   el.innerHTML = h;
 }
 
