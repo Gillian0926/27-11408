@@ -55,6 +55,13 @@
   .tag.cs { background:var(--cs-soft); color:var(--cs); }
   .tag.mech { background:var(--mech-soft); color:var(--mech); }
   .item .desc { color:var(--muted); font-size:12px; margin-top:2px; }
+  /* 首页每日时间表（放大） */
+  table.tt { font-size:16px; }
+  table.tt th { font-size:13px; padding:8px 10px; }
+  table.tt td { padding:11px 10px; }
+  table.tt td:first-child { font-weight:800; font-size:19px; white-space:nowrap; letter-spacing:.4px; color:var(--ink); }
+  table.tt td:nth-child(2) { font-size:16px; }
+  table.tt td:nth-child(3) { font-weight:700; color:var(--muted); font-size:15px; white-space:nowrap; }
   /* 学习台账 */
   .subj-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
   .tk-scroll { max-height:64vh; overflow:auto; }
@@ -235,7 +242,7 @@
     </div>
     <div class="card">
       <h2><span class="emo">⏰</span>每日时间表（05:00 起 · 24:00 睡）</h2>
-      <table>
+      <table class="tt">
         <tr><th>时段</th><th>安排</th><th>时长</th></tr>
         <tr><td>05:00–05:30</td><td>起床 · 洗漱 · 喝温水 · 拉伸</td><td>0:30</td></tr>
         <tr><td>05:30–06:30</td><td>🇬🇧 <b>英语：单词 + 每日一句</b></td><td>1:00</td></tr>
