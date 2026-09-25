@@ -7,19 +7,29 @@ const path = require('path');
 
 const BASE = __dirname;
 
+// [目录, key, 显示名] —— 顺序即站点内的显示顺序
 const SECTIONS = [
-  ['英语一/每日一句', 'english', '🇬🇧 英语 · 每日精读'],
-  ['英语一/作文技巧', 'essay', '✍️ 英语 · 作文技巧'],
-  ['英语一/素材库', 'essay_bank', '📖 英语 · 素材库'],
+  // ===== 机械工程（当前主线）=====
+  ['机械工程', 'mech_home', '⚙️ 机械工程 · 总览'],
+  ['机械工程/机械原理', 'mech_principle', '⚙️ 机械原理（801）'],
+  ['机械工程/机械原理/真题', 'mech_principle_past', '⚙️ 机械原理 · 真题'],
+  ['机械工程/数学二/高等数学', 'mech_math2_calc', '🧮 数学二 · 高等数学'],
+  ['机械工程/数学二/线性代数', 'mech_math2_la', '🧮 数学二 · 线性代数'],
+  // ===== 计算机（原 11408，归档）=====
+  ['计算机', 'comp_home', '💻 计算机 · 总览（归档）'],
+  ['计算机/数学一/微积分', 'comp_math_calc', '🧮 数学一 · 微积分（归档）'],
+  ['计算机/数学一/线性代数', 'comp_math_la', '🧮 数学一 · 线性代数（归档）'],
+  ['计算机/数学一/概率论', 'comp_math_prob', '🧮 数学一 · 概率论（归档）'],
+  ['计算机/408', 'cs408', '💻 408 · 总览（归档）'],
+  ['计算机/408/操作系统', 'os', '💻 408 · 操作系统（归档）'],
+  ['计算机/408/计算机网络', 'network', '💻 408 · 计算机网络（归档）'],
+  ['计算机/408/数据结构', 'ds', '💻 408 · 数据结构（归档）'],
+  ['计算机/408/计算机组成', 'co', '💻 408 · 计算机组成（归档）'],
+  // ===== 公共课 =====
+  ['英语二/每日一句', 'english', '🇬🇧 英语二 · 每日精读'],
+  ['英语二/作文技巧', 'essay', '✍️ 英语二 · 作文技巧'],
+  ['英语二/素材库', 'essay_bank', '📖 英语二 · 素材库'],
   ['政治/时事', 'politics', '🗞️ 政治 · 时事'],
-  ['数学一/微积分', 'math_calc', '🧮 数学 · 微积分'],
-  ['数学一/线性代数', 'math_la', '🧮 数学 · 线性代数'],
-  ['数学一/概率论', 'math_prob', '🧮 数学 · 概率论'],
-  ['408', 'cs408', '📚 408 · 总览'],
-  ['408/操作系统', 'os', '📚 408 · 操作系统'],
-  ['408/计算机网络', 'network', '📚 408 · 计算机网络'],
-  ['408/数据结构', 'ds', '📚 408 · 数据结构'],
-  ['408/计算机组成', 'co', '📚 408 · 计算机组成'],
   ['每日计划', 'plan', '📋 每日计划'],
 ];
 
@@ -43,6 +53,8 @@ function makeItem(f, key, label, group) {
 
 function main() {
   const out = [];
+  // 已知 section 目录集合：扫描某个 section 的子目录时跳过它们，避免重复收录
+  const sectionDirs = new Set(SECTIONS.map(s => s[0]));
   for (const [sub, key, label] of SECTIONS) {
     const subAbs = path.join(BASE, sub);
     if (!fs.existsSync(subAbs)) continue;
@@ -50,10 +62,11 @@ function main() {
     for (const f of fs.readdirSync(subAbs).filter(x => x.endsWith('.md')).sort()) {
       out.push(makeItem(path.join(subAbs, f), key, label, ''));
     }
-    // 子目录的 md（group = 子目录名）
+    // 子目录的 md（group = 子目录名）；子目录若本身是 section，则跳过
     for (const d of fs.readdirSync(subAbs).sort()) {
       const dAbs = path.join(subAbs, d);
       if (!fs.statSync(dAbs).isDirectory()) continue;
+      if (sectionDirs.has(sub + '/' + d)) continue;
       for (const f of fs.readdirSync(dAbs).filter(x => x.endsWith('.md')).sort()) {
         out.push(makeItem(path.join(dAbs, f), key, label, d));
       }

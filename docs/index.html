@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>27-11408 · 考研资料库</title>
+<title>27 考研资料库 · 机械工程 & 计算机</title>
 <style>
   :root { --bg:#f6f7fb; --card:#fff; --ink:#1f2430; --muted:#7a8194; --line:#e7eaf1;
           --accent:#e0457b; --accent-soft:#fdeef4; --eng:#0ea5a0; --eng-soft:#e7f7f6;
           --pol:#d97706; --pol-soft:#fef3e2; --math:#a855f7; --math-soft:#f4ebff;
-          --cs:#5b6cff; --cs-soft:#eef0ff; }
+          --cs:#5b6cff; --cs-soft:#eef0ff; --mech:#b45309; --mech-soft:#fef3e2; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
@@ -53,6 +53,7 @@
   .tag.pol { background:var(--pol-soft); color:var(--pol); }
   .tag.math { background:var(--math-soft); color:var(--math); }
   .tag.cs { background:var(--cs-soft); color:var(--cs); }
+  .tag.mech { background:var(--mech-soft); color:var(--mech); }
   .item .desc { color:var(--muted); font-size:12px; margin-top:2px; }
   /* 内容浏览 */
   .content-layout { display:flex; gap:14px; align-items:flex-start; }
@@ -148,8 +149,8 @@
 </head>
 <body>
 <header>
-  <h1>📚 27-11408 考研资料库</h1>
-  <p>数学一 · 英语一 · 408 · 政治 ｜ 每日更新 ｜ 爪爪 🦉 维护</p>
+  <h1>📚 27 考研资料库 · 计算机 &amp; 机械工程</h1>
+  <p>机械工程（机械原理 801）· 数学二 · 英语二 · 政治 ｜ 每日更新 ｜ 爪爪 🦉 维护</p>
 </header>
 
 <div class="wrap">
@@ -169,9 +170,9 @@
   <div class="tabs">
     <div class="tab active" data-view="home">🏠 主页</div>
     <div class="tab" data-view="english">🇬🇧 英语</div>
-    <div class="tab" data-view="math">🧮 数学</div>
     <div class="tab" data-view="politics">🗞️ 政治</div>
-    <div class="tab" data-view="cs408">📚 408</div>
+    <div class="tab" data-view="mech">⚙️ 机械工程</div>
+    <div class="tab" data-view="comp">💻 计算机</div>
     <div class="tab" data-view="plan">📋 计划</div>
     <div class="tab" data-view="books">📕 书架</div>
     <div class="tab" data-view="review">🔁 复习</div>
@@ -181,17 +182,17 @@
   <!-- 主页 -->
   <div class="view active" id="view-home">
     <div class="card">
-      <h2><span class="emo">📅</span>2027 考研考试时间表（预计）</h2>
+      <h2><span class="emo">📅</span>2027 考研考试时间表（北京信息科技大学 · 机械工程 085501）</h2>
       <table>
         <tr><th>日期</th><th>时间</th><th>科目</th><th>备注</th></tr>
         <tr><td>12 月 19 日（周六）</td><td>08:30 – 11:30</td>
           <td><span class="subj">思想政治理论</span> <span class="code">(101)</span></td><td>第一科</td></tr>
         <tr><td>12 月 19 日（周六）</td><td>14:00 – 17:00</td>
-          <td><span class="subj">英语（一）</span> <span class="code">(201)</span></td><td>第二科</td></tr>
+          <td><span class="subj">英语（二）</span> <span class="code">(204)</span></td><td>第二科</td></tr>
         <tr><td>12 月 20 日（周日）</td><td>08:30 – 11:30</td>
-          <td><span class="subj">数学（一）</span> <span class="code">(301)</span></td><td>第三科</td></tr>
+          <td><span class="subj">数学（二）</span> <span class="code">(302)</span></td><td>第三科</td></tr>
         <tr><td>12 月 20 日（周日）</td><td>14:00 – 17:00</td>
-          <td><span class="subj">408 计算机学科专业基础</span> <span class="code">(408)</span></td><td>第四科</td></tr>
+          <td><span class="subj">机械原理</span> <span class="code">(801)</span></td><td>第四科</td></tr>
       </table>
       <div class="note">⚠️ 以研招网官方公布为准。报名：预报名约 9 月下旬，正式报名约 10 月。</div>
     </div>
@@ -350,25 +351,26 @@ function renderHome(){
   const now = new Date();
   const cn = new Date(now.getTime() + 8*3600*1000).toISOString().slice(0,10);
   document.getElementById('todayLabel').textContent = '· ' + cn;
-  const daily = DATA.filter(d => ['english','politics','math_calc','math_la','math_prob'].includes(d.key));
-  const latest = {};
-  daily.forEach(d => { if (!latest[d.key] || (d.date||'') > (latest[d.key].date||'')) latest[d.key] = d; });
   const plan = DATA.find(d => d.key === 'plan' && d.date === cn);
   const planItems = DATA.filter(d => d.key === 'plan');
   const todayPlan = plan || planItems[0];
-  // 数学卡片：微积分/线性代数/概率论取最新（每日轮换科目）
-  let mathLatest = null;
-  ['math_calc','math_la','math_prob'].forEach(k => {
-    const d = latest[k];
-    if (d && (!mathLatest || (d.date||'') > (mathLatest.date||''))) mathLatest = d;
-  });
+  // 主线科目（各自取最新一条）
+  const latestOf = k => DATA.filter(d => d.key === k)
+    .sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+  const line = [
+    ['english', '🇬🇧 英语', 'eng'],
+    ['politics', '🗞️ 政治', 'pol'],
+    ['mech_principle', '⚙️ 机械原理', 'mech'],
+    ['mech_math2_calc', '🧮 数学二', 'mech'],
+    ['mech_math2_la', '🧮 数学二', 'mech'],
+  ];
   let html = '';
-  const order = [['english','🇬🇧 英语'],['politics','🗞️ 政治'],['essay','✍️ 作文']];
-  if (mathLatest) order.splice(2, 0, ['math_calc','🧮 数学']);
-  order.forEach(([k, emo]) => {
-    const d = (k === 'math_calc' && mathLatest) ? mathLatest : latest[k];
+  const seen = {};
+  line.forEach(([k, emo, cls]) => {
+    const d = latestOf(k);
     if (!d) return;
-    html += '<div class="item"><span class="tag ' + (k==='english'?'eng':k==='politics'?'pol':'math') + '">' + emo + '</span>' +
+    if (emo === '🧮 数学二') { if (seen.math2) return; seen.math2 = 1; }
+    html += '<div class="item"><span class="tag ' + cls + '">' + emo + '</span>' +
       '<a href="#" onclick="openFile(\'' + k + '\',\'' + esc(d.path) + '\');return false;">' + esc(d.title) + '</a>' +
       '<div class="desc">' + esc(d.date || '') + '</div></div>';
   });
@@ -405,9 +407,9 @@ document.querySelectorAll('.tab').forEach(t => {
 
 const KEY_ORDER = {
   english: ['english','essay','essay_bank'],
-  math: ['math_calc','math_la','math_prob'],
   politics: ['politics'],
-  cs408: ['cs408','os','network','ds','co'],
+  mech: ['mech_home','mech_principle','mech_principle_past','mech_math2_calc','mech_math2_la'],
+  comp: ['comp_home','comp_math_calc','comp_math_la','comp_math_prob','cs408','os','network','ds','co'],
   plan: ['plan'],
 };
 
@@ -585,7 +587,7 @@ const REVIEW_INTERVALS = [
   { days: 90, label: '第7次 · 3个月后' },
   { days: 180, label: '第8次 · 6个月后' },
 ];
-const REVIEW_KEYS = ['english','politics','math_calc','math_la','math_prob'];
+const REVIEW_KEYS = ['english','politics','mech_principle','mech_math2_calc','mech_math2_la'];
 const DONE_KEY = 'kaoyan_review_done_v1';
 
 function todayCN(){ return new Date(Date.now() + 8*3600*1000).toISOString().slice(0,10); }
@@ -657,8 +659,10 @@ function markDone(id){
 
 function subjectTag(key){
   if (key === 'diary') return '<span class="tag eng">📔</span>';
-  const map = { english:'eng', politics:'pol', math_calc:'math', math_la:'math', math_prob:'math' };
-  const emo = { english:'🇬🇧', politics:'🗞️', math_calc:'🧮', math_la:'🧮', math_prob:'🧮' };
+  const map = { english:'eng', politics:'pol', mech_principle:'mech', mech_math2_calc:'mech', mech_math2_la:'mech',
+                comp_math_calc:'math', comp_math_la:'math', comp_math_prob:'math' };
+  const emo = { english:'🇬🇧', politics:'🗞️', mech_principle:'⚙️', mech_math2_calc:'🧮', mech_math2_la:'🧮',
+                comp_math_calc:'🧮', comp_math_la:'🧮', comp_math_prob:'🧮' };
   return '<span class="tag ' + (map[key]||'math') + '">' + (emo[key]||'📌') + '</span>';
 }
 
