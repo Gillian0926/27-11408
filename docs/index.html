@@ -179,14 +179,19 @@
 <div class="wrap">
   <div class="countdown-row">
     <div class="countdown-box">
-      <div class="label">📝 考研报名倒计时（预报名）</div>
+      <div class="label">📝 预报名倒计时</div>
       <div class="num" id="cd-baoming">—</div>
-      <div class="sub">预计 2026-09-24 开始</div>
+      <div class="sub">2026-10-09 ~ 10-12（9:00-22:00）</div>
+    </div>
+    <div class="countdown-box">
+      <div class="label">📋 正式报名倒计时</div>
+      <div class="num" id="cd-baoming2">—</div>
+      <div class="sub">2026-10-15 ~ 10-24（9:00-22:00）</div>
     </div>
     <div class="countdown-box warn">
       <div class="label">🏁 考研初试倒计时</div>
       <div class="num" id="cd-kaoyan">—</div>
-      <div class="sub">预计 2026-12-19 08:30 开考</div>
+      <div class="sub">2026-12-19 08:30 开考</div>
     </div>
   </div>
 
@@ -218,7 +223,7 @@
         <tr><td>12 月 20 日（周日）</td><td>14:00 – 17:00</td>
           <td><span class="subj">机械原理</span> <span class="code">(801)</span></td><td>第四科</td></tr>
       </table>
-      <div class="note">⚠️ 以研招网官方公布为准。报名：预报名约 9 月下旬，正式报名约 10 月。</div>
+      <div class="note">✅ 2027 官方时间：<b>预报名 2026-10-09 ~ 10-12</b>，<b>正式报名 2026-10-15 ~ 10-24</b>（每日 9:00–22:00）；初试 12-19 ~ 12-20。报名渠道：中国研究生招生信息网 yz.chsi.com.cn。以研招网为准。</div>
     </div>
     <div class="card">
       <h2><span class="emo">📌</span>今日更新 <span id="todayLabel"></span></h2>
@@ -354,7 +359,8 @@ let currentKey = null;
 let currentIdx = null;
 
 // ---------- 倒计时 ----------
-const T_BAOMING = new Date('2026-09-24T09:00:00+08:00');
+const T_BAOMING = new Date('2026-10-09T09:00:00+08:00');   // 预报名
+const T_BAOMING2 = new Date('2026-10-15T09:00:00+08:00');  // 正式报名
 const T_KAOYAN  = new Date('2026-12-19T08:30:00+08:00');
 function pad(n){ return String(n).padStart(2,'0'); }
 function fmt(target){
@@ -364,6 +370,7 @@ function fmt(target){
          pad(Math.floor(diff%3600000/60000)) + ':' + pad(Math.floor(diff%60000/1000));
 }
 function tick(){ document.getElementById('cd-baoming').textContent = fmt(T_BAOMING);
+  document.getElementById('cd-baoming2').textContent = fmt(T_BAOMING2);
   document.getElementById('cd-kaoyan').textContent = fmt(T_KAOYAN); }
 tick(); setInterval(tick, 1000);
 
