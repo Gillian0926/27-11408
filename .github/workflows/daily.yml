@@ -1,0 +1,64 @@
+name: daily-kaoyan
+
+# 每天北京时间 05:00（= UTC 21:00 前一天）自动生成考研站内容
+# 不依赖任何本地设备；也可在 Actions 页面手动触发
+on:
+  schedule:
+    - cron: '0 21 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '指定日期 YYYY-MM-DD（补跑用，留空=今天）'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: daily-kaoyan
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 生成今日内容
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DATE_OVERRIDE: ${{ github.event.inputs.date }}
+        run: node scripts/generate_daily.js
+
+      - name: 构建站点
+        run: node build_site_node.js
+
+      - name: 提交并推送
+        run: |
+          set -e
+          git config user.name "PawService"
+          git config user.email "pawservice@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "无变更，跳过提交"
+            exit 0
+          fi
+          TITLE=$(TZ=Asia/Shanghai date +%F)
+          git commit -m "Daily update ${TITLE}"
+          git pull --rebase --autostash origin main || true
+          git push
+
+      - name: 失败时建 issue（提醒爪爪/思岐）
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          D=$(TZ=Asia/Shanghai date +%F)
+          gh issue create --title "考研站每日生成失败 ${D}" \
+            --body "今天的云端生成/构建失败了，请查看 Actions 日志：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
