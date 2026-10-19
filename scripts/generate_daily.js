@@ -147,7 +147,7 @@ async function genMech() {
 【任务】为今天（${TODAY}，${WEEKDAY}）生成机械原理(801)的两张卡片：
 1) ${dir}/${TODAY}.md —— 第 N 讲：知识讲解 + 典型例题 + 易错点（格式参考已有卡片，标题写成"# ⚙️ 机械原理 · 第 N 讲：xxx"）
 2) ${dir}/${TODAY}-2.md —— 配套"公式与速查卡"
-N = 已有讲数 + 1（见下方已有卡片），按 801 考纲九章顺序与学习计划日期推进，别跳章。
+N = 日期早于 ${TODAY} 的讲数 + 1（见下方已有卡片；补跑历史日期时尤其注意），按 801 考纲九章顺序与学习计划日期推进，别跳章。
 
 【801 考纲】\n${read('机械工程/机械原理/801 考纲.md')}
 
@@ -170,7 +170,7 @@ async function genMath() {
 优先推进"高等数学"（按学习计划现在在高等数学阶段；等高等数学走完再转线性代数）。
 1) 机械工程/数学二/高等数学/${TODAY}.md（若本轮转线性代数则用 机械工程/数学二/线性代数/${TODAY}.md）—— 第 N 站：知识讲解 + 典型例题 + 易错点，标题"# 🧮 数学二 · 第 N 讲：xxx"
 2) 同目录/${TODAY}-2.md —— 公式速查卡
-N = 该科目已有卡片对数 + 1。
+N = 该科目中日期早于 ${TODAY} 的卡片对数 + 1（补跑历史日期时尤其注意）。
 
 【学习计划（数学部分）】\n${read('机械工程/学习计划.md').slice(0, 3500)}
 
@@ -242,6 +242,16 @@ X = 已有计划数 + 1（首日 2026-08-16 为第 1 天，见已有文件）。
 }
 
 // ---------- 主流程 ----------
+async function withRetry(label, fn, tries = 2) {
+  let last = null;
+  for (let i = 1; i <= tries; i++) {
+    try { last = await fn(); } catch (e) { console.error(`[${label}] 第 ${i} 次生成失败: ${e.message}`); last = null; }
+    if (last && Array.isArray(last.files) && last.files.length) return last;
+    if (i < tries) { console.error(`[${label}] 第 ${i} 次没有产出文件，重试…`); await new Promise(r => setTimeout(r, 3000)); }
+  }
+  return last || { topic: '', files: [] };
+}
+
 async function main() {
   if (!API_KEY) { console.error('缺少 DEEPSEEK_API_KEY'); process.exit(1); }
   if (fs.existsSync(path.join(BASE, '每日计划', TODAY + '.md')) && !FORCE) {
@@ -256,19 +266,19 @@ async function main() {
   const results = [];
   const topics = {};
 
-  const mech = await genMech();
+  const mech = await withRetry('机械原理', genMech);
   topics.mech = mech.topic; results.push(['机械原理', mech]);
 
-  const math = await genMath();
+  const math = await withRetry('数学二', genMath);
   topics.math = math.topic; results.push(['数学二', math]);
 
-  const en = await genEnglish();
+  const en = await withRetry('英语二', genEnglish);
   topics.en = en.topic; results.push(['英语二', en]);
 
-  const pol = await genPolitics(news);
+  const pol = await withRetry('政治', genPolitics.bind(null, news));
   topics.pol = pol.topic; results.push(['政治', pol]);
 
-  const plan = await genPlan(topics);
+  const plan = await withRetry('每日计划', () => genPlan(topics));
   results.push(['每日计划', plan]);
 
   let written = 0;
@@ -280,14 +290,21 @@ async function main() {
       catch (e) { console.error(`  [skip] ${name}: ${e.message}  path=${f.path}`); }
     }
   }
-  // 关键文件校验
+  // 关键文件校验（数学二：高数或线代任一出即可；每日计划缺失只告警不阻塞）
+  const mathCandidates = [
+    '机械工程/数学二/高等数学/' + TODAY + '.md',
+    '机械工程/数学二/线性代数/' + TODAY + '.md',
+  ];
+  const mathOk = mathCandidates.some(p => fs.existsSync(path.join(BASE, p)));
   const need = [
     '机械工程/机械原理/' + TODAY + '.md',
-    '机械工程/数学二/高等数学/' + TODAY + '.md',
     '英语二/每日一句/' + TODAY + '.md',
     '政治/时事/' + TODAY + '.md',
-    '每日计划/' + TODAY + '.md',
   ].filter(p => !fs.existsSync(path.join(BASE, p)));
+  if (!mathOk) need.push('机械工程/数学二/{高等数学|线性代数}/' + TODAY + '.md');
+  if (!fs.existsSync(path.join(BASE, '每日计划', TODAY + '.md'))) {
+    console.error('[警告] 每日计划缺失，其余科目照常提交');
+  }
   if (!written) { console.error('没有写入任何文件'); process.exit(1); }
   if (need.length) { console.error('缺失关键文件:', need.join(', ')); process.exit(1); }
   console.log(`完成：${written} 个文件。主题：`, JSON.stringify(topics, null, 0));
